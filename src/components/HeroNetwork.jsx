@@ -1,0 +1,18 @@
+import { useEffect, useRef, useState } from 'react'
+
+export default function HeroNetwork() {
+  const canvasRef = useRef(null)
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => { const media = window.matchMedia('(prefers-reduced-motion: reduce)'); const update = () => setReduced(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update) }, [])
+  useEffect(() => {
+    if (reduced) return undefined
+    const canvas = canvasRef.current; const context = canvas?.getContext('2d'); if (!canvas || !context) return undefined
+    let nodes = []; let frame; let activeIndex = 0; let lastActive = performance.now(); let cursor = { x: -999, y: -999 }; const limit = 120
+    const resize = () => { const rect = canvas.getBoundingClientRect(); const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = rect.width * ratio; canvas.height = rect.height * ratio; context.setTransform(ratio, 0, 0, ratio, 0, 0); nodes = Array.from({ length: 60 }, () => ({ x: Math.random() * rect.width, y: Math.random() * rect.height, vx: (Math.random() - .5) * .3, vy: (Math.random() - .5) * .3, opacity: .3 + Math.random() * .3, ripple: 0 })); activeIndex = Math.floor(Math.random() * nodes.length) }
+    const mouseMove = (event) => { const rect = canvas.getBoundingClientRect(); cursor = { x: event.clientX - rect.left, y: event.clientY - rect.top } }
+    const draw = (time) => { const rect = canvas.getBoundingClientRect(); context.clearRect(0, 0, rect.width, rect.height); if (time - lastActive > 8000) { activeIndex = Math.floor(Math.random() * nodes.length); nodes[activeIndex].ripple = 1; lastActive = time }
+      nodes.forEach((node, index) => { const dx = node.x - cursor.x; const dy = node.y - cursor.y; const distance = Math.hypot(dx, dy); if (distance < 100 && distance > 0) { const force = ((100 - distance) / 100) * .8; node.vx += (dx / distance) * force * .06; node.vy += (dy / distance) * force * .06 } node.x += node.vx; node.y += node.vy; node.vx *= .995; node.vy *= .995; if (node.x < 0 || node.x > rect.width) node.vx *= -1; if (node.y < 0 || node.y > rect.height) node.vy *= -1; node.x = Math.max(0, Math.min(rect.width, node.x)); node.y = Math.max(0, Math.min(rect.height, node.y)); for (let other = index + 1; other < nodes.length; other += 1) { const otherNode = nodes[other]; const lineDistance = Math.hypot(node.x - otherNode.x, node.y - otherNode.y); if (lineDistance < limit) { context.strokeStyle = `rgba(0,201,167,${(1 - lineDistance / limit) * .15})`; context.lineWidth = .5; context.beginPath(); context.moveTo(node.x, node.y); context.lineTo(otherNode.x, otherNode.y); context.stroke() } } const active = index === activeIndex; context.fillStyle = `rgba(0,201,167,${active ? 1 : node.opacity})`; context.beginPath(); context.arc(node.x, node.y, active ? 2.6 : 2, 0, Math.PI * 2); context.fill(); if (node.ripple > 0) { const radius = (1 - node.ripple) * 32; context.strokeStyle = `rgba(0,201,167,${node.ripple * .55})`; context.lineWidth = 1; context.beginPath(); context.arc(node.x, node.y, radius, 0, Math.PI * 2); context.stroke(); node.ripple = Math.max(0, node.ripple - .012) } }); frame = requestAnimationFrame(draw) }
+    resize(); window.addEventListener('resize', resize); canvas.addEventListener('mousemove', mouseMove); frame = requestAnimationFrame(draw); return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize); canvas.removeEventListener('mousemove', mouseMove) }
+  }, [reduced])
+  return reduced ? <div className="hero-static-field" aria-hidden="true" /> : <canvas ref={canvasRef} className="hero-network" aria-hidden="true" />
+}
