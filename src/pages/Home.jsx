@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroAnalysisCard from '../components/HeroAnalysisCard'
 import BengaluruDigitalTwin from '../components/BengaluruDigitalTwin'
-import ThreeCityCanvas from '../components/ThreeCityCanvas'
 import ThreeMachineryViewer from '../components/ThreeMachineryViewer'
 import CivicHotspots from '../components/CivicHotspots'
 import { use3DTilt } from '../hooks/use3DTilt'
@@ -146,8 +145,6 @@ function StepCard3D({ item }) {
 }
 
 export default function Home({ issues = [] }) {
-  const [digitalTwinMode, setDigitalTwinMode] = useState('geospatial') // 'geospatial' | 'wardSimulation'
-
   return (
     <main className="bg-slate-50 text-slate-900">
       {/* Official Government Live Ticker Strip */}
@@ -225,51 +222,28 @@ export default function Home({ issues = [] }) {
         </div>
       </section>
 
-      {/* Flagship Geospatial Digital-Twin Infrastructure Matrix */}
-      <section className="shell my-12">
+      {/* Flagship Bengaluru Urban Infrastructure Matrix • Live 3D Twin */}
+      <section id="infrastructure-matrix" className="shell my-12">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
-              <Globe size={14} /> Real Geospatial Digital-Twin Layer Stack
+              <Globe size={14} /> Official GBA &amp; BBMP Geospatial Infrastructure Matrix
             </div>
             <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
               Bengaluru Urban Infrastructure Matrix &bull; Live 3D Twin
             </h2>
             <p className="text-sm text-slate-600 mt-1 max-w-3xl">
-              Geospatially projected across Greater Bengaluru. Inspect real-coordinate Namma Metro corridors, Rajakaluve stormwater drainage channels, lakes, arterial road traffic states, and live grievance dockets with real-time flood simulation.
+              High-precision 3D geospatial infrastructure matrix across Greater Bengaluru. Interactive real-time 3D satellite stream, Namma Metro corridors, Rajakaluve stormwater drainage channels, lakes, BBMP arterial roads, and ward civic assets.
             </p>
           </div>
 
-          {/* Mode Switcher */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-300 self-start sm:self-auto">
-            <button
-              onClick={() => setDigitalTwinMode('geospatial')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
-                digitalTwinMode === 'geospatial'
-                  ? 'bg-civic text-white shadow-sm'
-                  : 'text-slate-700 hover:bg-white'
-              }`}
-            >
-              <Layers size={13} /> Geospatial Twin (WGS84)
-            </button>
-            <button
-              onClick={() => setDigitalTwinMode('wardSimulation')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
-                digitalTwinMode === 'wardSimulation'
-                  ? 'bg-civic text-white shadow-sm'
-                  : 'text-slate-700 hover:bg-white'
-              }`}
-            >
-              <Building2 size={13} /> Micro-Ward Topography
-            </button>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            BBMP GIS Realtime Online
           </div>
         </div>
 
-        {digitalTwinMode === 'geospatial' ? (
-          <BengaluruDigitalTwin issues={issues} />
-        ) : (
-          <ThreeCityCanvas />
-        )}
+        <BengaluruDigitalTwin issues={issues} />
       </section>
 
       {/* BBMP Integrated Command Center Showcase */}
