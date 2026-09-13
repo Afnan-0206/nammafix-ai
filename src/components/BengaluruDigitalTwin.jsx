@@ -1,784 +1,855 @@
-import { useEffect, useRef, useState } from 'react'
-import * as THREE from 'three'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  Layers, MapPin, Navigation, ShieldCheck, AlertTriangle, Droplets, Train,
-  Car, Building2, Sliders, Eye, RotateCcw, CloudRain, Info, X, Compass, CheckCircle2, ChevronRight
+  Building2, MapPin, Search, Compass, Sun, Moon, Layers,
+  Navigation, Eye, X, Check, Droplets, Trees, Train, Car,
+  ShieldAlert, ExternalLink, Globe, Sliders, ChevronRight, CornerDownRight
 } from 'lucide-react'
-import {
-  projectGeo, LAKES_DATA, DRAINS_DATA, METRO_LINES, ARTERIAL_ROADS,
-  LANDMARK_BUILDINGS, GBA_CORPORATIONS, analyzeSpatialRelationships, haversineKm
-} from '../data/bengaluruGeoTwin'
 
-export default function BengaluruDigitalTwin({ issues = [], onSelectIssue }) {
-  const containerRef = useRef(null)
-  const [selectedNode, setSelectedNode] = useState(null)
-  const [spatialAnalysis, setSpatialAnalysis] = useState(null)
+// Authoritative Landmark Nodes positioned across the 3D aerial cityscape
+const LANDMARKS = [
+  {
+    id: 'ub-city',
+    name: 'UB City',
+    type: 'Commercial Building',
+    kannada: 'ಯುಬಿ ಸಿಟಿ',
+    topPct: 48,
+    leftPct: 53,
+    category: 'buildings',
+    image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: '152 m',
+      floors: '32',
+      buildingType: 'Commercial',
+      address: '24, Vittal Mallya Road, Bengaluru, Karnataka',
+      source: 'OpenStreetMap / Cesium',
+      lastUpdated: '2024-01-15',
+    },
+    nearby: {
+      road: '120 m',
+      metro: 'MG Road (1.2 km)',
+      lake: 'Ulsoor Lake (1.2 km)',
+      park: 'Cubbon Park (2.3 km)',
+      drain: '850 m',
+    },
+    coords: '12.9716° N, 77.5946° E',
+  },
+  {
+    id: 'vidhana-soudha',
+    name: 'Vidhana Soudha',
+    type: 'State Legislative Assembly',
+    kannada: 'ವಿಧಾನ ಸೌಧ',
+    topPct: 40,
+    leftPct: 42,
+    category: 'buildings',
+    image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: '46 m',
+      floors: '4',
+      buildingType: 'Government Legislature',
+      address: 'Ambedkar Veedhi, Sampangi Rama Nagara, Bengaluru',
+      source: 'Government of Karnataka GIS',
+      lastUpdated: '2024-02-10',
+    },
+    nearby: {
+      road: '50 m (Ambedkar Veedhi)',
+      metro: 'Vidhana Soudha Metro (150 m)',
+      lake: 'Ulsoor Lake (2.4 km)',
+      park: 'Cubbon Park (300 m)',
+      drain: '620 m',
+    },
+    coords: '12.9797° N, 77.5907° E',
+  },
+  {
+    id: 'bengaluru-palace',
+    name: 'Bengaluru Palace',
+    type: 'Heritage Royal Palace',
+    kannada: 'ಬೆಂಗಳೂರು ಅರಮನೆ',
+    topPct: 63,
+    leftPct: 48,
+    category: 'buildings',
+    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: '24 m',
+      floors: '2',
+      buildingType: 'Historical Heritage',
+      address: 'Vasanth Nagar, Bengaluru, Karnataka',
+      source: 'Archaeological Survey / OSM',
+      lastUpdated: '2023-11-20',
+    },
+    nearby: {
+      road: '80 m (Palace Road)',
+      metro: 'Cantonment Metro (1.8 km)',
+      lake: 'Sankey Tank (1.5 km)',
+      park: 'Palace Grounds (100 m)',
+      drain: '450 m',
+    },
+    coords: '12.9982° N, 77.5921° E',
+  },
+  {
+    id: 'ulsoor-lake',
+    name: 'Ulsoor Lake',
+    type: 'Urban Waterbody & Storm Catchment',
+    kannada: 'ಹಲಸೂರು ಕೆರೆ',
+    topPct: 55,
+    leftPct: 69,
+    category: 'lakes',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: 'Water Surface',
+      floors: 'Depth 4.8 m',
+      buildingType: 'Natural Catchment Lake',
+      address: 'Ulsoor / Halasuru, East Bengaluru',
+      source: 'BBMP Lakes Monitoring System',
+      lastUpdated: '2024-03-01',
+    },
+    nearby: {
+      road: '40 m (Kensington Road)',
+      metro: 'Halasuru Metro (600 m)',
+      lake: '0 m (Primary Basin)',
+      park: 'Kensington Park (80 m)',
+      drain: 'K-C Valley Rajakaluve Outfall (0 m)',
+    },
+    coords: '12.9822° N, 77.6219° E',
+  },
+  {
+    id: 'hebbal-lake',
+    name: 'Hebbal Lake',
+    type: 'North Bengaluru Lake & Wetland',
+    kannada: 'ಹೆಬ್ಬಾಳ ಕೆರೆ',
+    topPct: 24,
+    leftPct: 45,
+    category: 'lakes',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: 'Water Surface',
+      floors: 'Depth 5.2 m',
+      buildingType: 'Stormwater Wetland',
+      address: 'Bellary Road / Outer Ring Road Junction, Hebbal',
+      source: 'Karnataka Forest Dept / BBMP',
+      lastUpdated: '2024-02-18',
+    },
+    nearby: {
+      road: '25 m (Hebbal Flyover)',
+      metro: 'Hebbal Metro (Phase-2B) (200 m)',
+      lake: '0 m (Primary Basin)',
+      park: 'Hebbal Lake Eco-Park (0 m)',
+      drain: 'Hebbal Valley Trunk Drain (0 m)',
+    },
+    coords: '13.0456° N, 77.5892° E',
+  },
+  {
+    id: 'cubbon-park',
+    name: 'Cubbon Park',
+    type: 'Urban Botanical Reserve',
+    kannada: 'ಕಬ್ಬನ್ ಪಾರ್ಕ್',
+    topPct: 43,
+    leftPct: 28,
+    category: 'parks',
+    image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: 'Canopy 28 m',
+      floors: 'Area 300 Acres',
+      buildingType: 'Public Green Space',
+      address: 'Kasturba Road, Central Bengaluru',
+      source: 'Horticulture Department, Karnataka',
+      lastUpdated: '2024-01-10',
+    },
+    nearby: {
+      road: '0 m (Kasturba Road)',
+      metro: 'Cubbon Park Metro (100 m)',
+      lake: 'Sankey Tank (2.8 km)',
+      park: '0 m',
+      drain: '780 m',
+    },
+    coords: '12.9763° N, 77.5929° E',
+  },
+  {
+    id: 'lalbagh',
+    name: 'Lalbagh Botanical Garden',
+    type: 'Botanical Garden & Lake',
+    kannada: 'ಲಾಲ್‌ಬಾಗ್ ಸಸ್ಯತೋಟ',
+    topPct: 82,
+    leftPct: 72,
+    category: 'parks',
+    image: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: 'Glasshouse Heritage',
+      floors: 'Area 240 Acres',
+      buildingType: 'Botanical Sanctuary',
+      address: 'Mavalli, South Bengaluru',
+      source: 'Horticulture Department / GBA',
+      lastUpdated: '2024-02-05',
+    },
+    nearby: {
+      road: '60 m (Lalbagh Fort Road)',
+      metro: 'Lalbagh Metro (250 m)',
+      lake: 'Lalbagh Lake (0 m)',
+      park: '0 m',
+      drain: '410 m',
+    },
+    coords: '12.9507° N, 77.5848° E',
+  },
+  {
+    id: 'railway-station',
+    name: 'Bengaluru City Railway Station',
+    type: 'KSR Bengaluru Intercity Terminal',
+    kannada: 'ಕ್ರಾಂತಿವೀರ ಸಂಗೊಳ್ಳಿ ರಾಯಣ್ಣ ನಿಲ್ದಾಣ',
+    topPct: 72,
+    leftPct: 26,
+    category: 'metro',
+    image: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: '38 m',
+      floors: '10 Platforms',
+      buildingType: 'Intermodal Transit Hub',
+      address: 'Majestic, Sevashrama, Bengaluru',
+      source: 'Indian Railways / BMRCL',
+      lastUpdated: '2024-01-22',
+    },
+    nearby: {
+      road: '20 m (Gubbi Thotadappa Road)',
+      metro: 'Majestic Metro Interchange (100 m)',
+      lake: 'Sankey Tank (3.2 km)',
+      park: 'Freedom Park (800 m)',
+      drain: 'Vrishabhavathi Basin (200 m)',
+    },
+    coords: '12.9782° N, 77.5695° E',
+  },
+  {
+    id: 'manyata-tech-park',
+    name: 'Manyata Tech Park',
+    type: 'IT Tech Campus & SEZ',
+    kannada: 'ಮಾನ್ಯತಾ ಟೆಕ್ ಪಾರ್ಕ್',
+    topPct: 25,
+    leftPct: 81,
+    category: 'buildings',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: '52 m',
+      floors: '14',
+      buildingType: 'Commercial Tech Park',
+      address: 'Outer Ring Road, Nagavara, Bengaluru',
+      source: 'Embassy Office Parks / GBA',
+      lastUpdated: '2024-02-14',
+    },
+    nearby: {
+      road: '10 m (Outer Ring Road)',
+      metro: 'Nagavara Metro (650 m)',
+      lake: 'Nagavara Lake (300 m)',
+      park: 'Lumbini Gardens (400 m)',
+      drain: 'Hebbal Valley Tributary (120 m)',
+    },
+    coords: '13.0500° N, 77.6210° E',
+  },
+  {
+    id: 'airport',
+    name: 'Kempegowda International Airport',
+    type: 'International Aviation Hub (BLR)',
+    kannada: 'ಕೆಂಪೇಗೌಡ ಅಂತರರಾಷ್ಟ್ರೀಯ ವಿಮಾನ ನಿಲ್ದಾಣ',
+    topPct: 12,
+    leftPct: 57,
+    category: 'roads',
+    image: 'https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=400&q=80',
+    details: {
+      height: 'Control Tower 65 m',
+      floors: 'Terminals 1 & 2',
+      buildingType: 'International Airport',
+      address: 'Devanahalli, Bengaluru Rural',
+      source: 'BIAL / AAI',
+      lastUpdated: '2024-03-05',
+    },
+    nearby: {
+      road: '0 m (Airport Expressway NH-44)',
+      metro: 'Airport Metro (Under Construction)',
+      lake: 'Bettakote Lake (1.8 km)',
+      park: 'Terminal 2 Garden Canopy (0 m)',
+      drain: 'Terminal Storm Runoff Network',
+    },
+    coords: '13.1986° N, 77.7066° E',
+  },
+]
+
+// Metro Stations & Corridor Nodes
+const METRO_NODES = [
+  { name: 'Hebbal', topPct: 29, leftPct: 73 },
+  { name: 'Yelahanka', topPct: 20, leftPct: 41 },
+]
+
+// City Views
+const CITY_VIEWS = [
+  { id: 'overview', name: 'City Overview', zoom: 1, panX: 0, panY: 0 },
+  { id: 'central', name: 'Central Bengaluru', zoom: 1.35, panX: -5, panY: 8 },
+  { id: 'north', name: 'North Bengaluru', zoom: 1.4, panX: -2, panY: 28 },
+  { id: 'south', name: 'South Bengaluru', zoom: 1.3, panX: -12, panY: -22 },
+  { id: 'east', name: 'East Bengaluru', zoom: 1.35, panX: -20, panY: 5 },
+  { id: 'west', name: 'West Bengaluru', zoom: 1.3, panX: 20, panY: 8 },
+  { id: 'orr', name: 'ORR', zoom: 1.45, panX: -25, panY: 12 },
+  { id: 'whitefield', name: 'Whitefield', zoom: 1.5, panX: -32, panY: 8 },
+  { id: 'electronic-city', name: 'Electronic City', zoom: 1.4, panX: -18, panY: -30 },
+  { id: 'airport-corridor', name: 'Airport Corridor', zoom: 1.5, panX: -6, panY: 38 },
+]
+
+export default function BengaluruDigitalTwin() {
+  const [selectedLandmark, setSelectedLandmark] = useState(LANDMARKS[0]) // Default UB City as in screenshot
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [activeView, setActiveView] = useState('overview')
+  const [isDaylight, setIsDaylight] = useState(true)
+
+  // Zoom & Pan state
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const isDraggingRef = useRef(false)
+  const dragStartRef = useRef({ x: 0, y: 0 })
 
   // Layer Toggles
-  const [layers, setLayers] = useState({
+  const [activeLayers, setActiveLayers] = useState({
     buildings: true,
+    terrain: true,
     roads: true,
     metro: true,
     lakes: true,
-    drains: true,
-    incidents: true,
-    floodSimulation: false,
+    parks: true,
+    adminBoundary: false,
   })
 
-  // Monsoon Rainfall Slider (0 - 120 mm/hr)
-  const [rainfallMm, setRainfallMm] = useState(25)
-  const [cameraPreset, setCameraPreset] = useState('overview')
-
-  // Refs for WebGL scene objects
-  const sceneStateRef = useRef({
-    scene: null,
-    camera: null,
-    renderer: null,
-    targetCamPos: new THREE.Vector3(0, 65, 85),
-    targetLookAt: new THREE.Vector3(0, 0, 0),
-    currentLookAt: new THREE.Vector3(0, 0, 0),
-    interactiveObjects: [],
-    trainMeshes: [],
-    lakeMeshes: [],
-    floodOverlayMesh: null,
-    drainLines: [],
-    layerGroups: {
-      buildings: new THREE.Group(),
-      roads: new THREE.Group(),
-      metro: new THREE.Group(),
-      lakes: new THREE.Group(),
-      drains: new THREE.Group(),
-      incidents: new THREE.Group(),
-    },
-  })
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const width = container.clientWidth
-    const height = container.clientHeight || 560
-
-    // 1. Scene & Renderer
-    const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0xf1f5f9) // Crisp daylight sky
-    sceneStateRef.current.scene = scene
-
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.5, 1200)
-    camera.position.set(0, 65, 85)
-    camera.lookAt(0, 0, 0)
-    sceneStateRef.current.camera = camera
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
-    renderer.setSize(width, height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
-    container.appendChild(renderer.domElement)
-    sceneStateRef.current.renderer = renderer
-
-    // 2. Daytime Architectural Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85)
-    scene.add(ambientLight)
-
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.3)
-    sunLight.position.set(50, 90, 45)
-    sunLight.castShadow = true
-    sunLight.shadow.mapSize.width = 2048
-    sunLight.shadow.mapSize.height = 2048
-    sunLight.shadow.camera.near = 10
-    sunLight.shadow.camera.far = 220
-    sunLight.shadow.camera.left = -65
-    sunLight.shadow.camera.right = 65
-    sunLight.shadow.camera.top = 65
-    sunLight.shadow.camera.bottom = -65
-    sunLight.shadow.bias = -0.0004
-    scene.add(sunLight)
-
-    // 3. Terrain Base Plane (Bengaluru Deccan Plateau at ~920m Elevation)
-    const terrainGeo = new THREE.PlaneGeometry(120, 120, 32, 32)
-    const terrainMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 })
-    const terrain = new THREE.Mesh(terrainGeo, terrainMat)
-    terrain.rotation.x = -Math.PI / 2
-    terrain.receiveShadow = true
-    scene.add(terrain)
-
-    // Add Layer Groups
-    const { buildings, roads, metro, lakes, drains, incidents } = sceneStateRef.current.layerGroups
-    scene.add(buildings)
-    scene.add(roads)
-    scene.add(metro)
-    scene.add(lakes)
-    scene.add(drains)
-    scene.add(incidents)
-
-    const interactives = []
-
-    // ─── BUILD LAYER: Lakes & Waterbodies ───
-    LAKES_DATA.forEach((lake) => {
-      const lakeGroup = new THREE.Group()
-      const pts = lake.boundary.map(([lat, lng]) => {
-        const { x, z } = projectGeo(lat, lng)
-        return new THREE.Vector2(x, -z)
-      })
-      const shape = new THREE.Shape(pts)
-      const lakeGeo = new THREE.ShapeGeometry(shape)
-      const lakeMat = new THREE.MeshLambertMaterial({
-        color: 0x0284c7,
-        side: THREE.DoubleSide,
-      })
-      const lakeMesh = new THREE.Mesh(lakeGeo, lakeMat)
-      lakeMesh.rotation.x = Math.PI / 2
-      lakeMesh.position.y = 0.05
-      lakeMesh.receiveShadow = true
-      lakeGroup.add(lakeMesh)
-
-      // Center Marker for Raycasting
-      const center = projectGeo(lake.lat, lake.lng)
-      const markerGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 16)
-      const markerMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.8 })
-      const marker = new THREE.Mesh(markerGeo, markerMat)
-      marker.position.set(center.x, 0.1, center.z)
-      marker.userData = { type: 'lake', data: lake }
-      lakeGroup.add(marker)
-      interactives.push(marker)
-
-      lakes.add(lakeGroup)
-      sceneStateRef.current.lakeMeshes.push({ mesh: lakeMesh, baseScale: 1.0, lake })
-    })
-
-    // ─── BUILD LAYER: Rajakaluve Stormwater Drains ───
-    DRAINS_DATA.forEach((drain) => {
-      const points = drain.path.map(([lat, lng]) => {
-        const { x, z } = projectGeo(lat, lng)
-        return new THREE.Vector3(x, 0.08, z)
-      })
-      const curve = new THREE.CatmullRomCurve3(points)
-      const tubeGeo = new THREE.TubeGeometry(curve, 64, 0.35, 8, false)
-      const tubeMat = new THREE.MeshLambertMaterial({ color: 0x0f766e })
-      const tube = new THREE.Mesh(tubeGeo, tubeMat)
-      tube.userData = { type: 'drain', data: drain }
-      drains.add(tube)
-      interactives.push(tube)
-      sceneStateRef.current.drainLines.push(tube)
-    })
-
-    // ─── BUILD LAYER: Arterial Roads & Traffic ───
-    ARTERIAL_ROADS.forEach((road) => {
-      const points = road.path.map(([lat, lng]) => {
-        const { x, z } = projectGeo(lat, lng)
-        return new THREE.Vector3(x, 0.06, z)
-      })
-      const curve = new THREE.CatmullRomCurve3(points)
-      const tubeGeo = new THREE.TubeGeometry(curve, 64, 0.5, 8, false)
-
-      // Color code by traffic congestion index (Green -> Amber -> Red)
-      const trafficColor =
-        road.trafficIndex >= 80 ? 0xdc2626 : road.trafficIndex >= 65 ? 0xd97706 : 0x16a34a
-      const roadMat = new THREE.MeshLambertMaterial({ color: trafficColor })
-      const roadMesh = new THREE.Mesh(tubeGeo, roadMat)
-      roadMesh.userData = { type: 'road', data: road }
-      roads.add(roadMesh)
-      interactives.push(roadMesh)
-    })
-
-    // ─── BUILD LAYER: Namma Metro Lines & Stations ───
-    METRO_LINES.forEach((line) => {
-      const points = line.stations.map((stn) => {
-        const { x, z } = projectGeo(stn.lat, stn.lng)
-        return new THREE.Vector3(x, 0.8, z) // Elevated track viaduct
-      })
-      const curve = new THREE.CatmullRomCurve3(points)
-      const trackGeo = new THREE.TubeGeometry(curve, 64, 0.22, 8, false)
-      const trackMat = new THREE.MeshLambertMaterial({ color: parseInt(line.color.replace('#', '0x')) })
-      const trackMesh = new THREE.Mesh(trackGeo, trackMat)
-      trackMesh.userData = { type: 'metroLine', data: line }
-      metro.add(trackMesh)
-      interactives.push(trackMesh)
-
-      // Stations Pods
-      line.stations.forEach((stn) => {
-        const { x, z } = projectGeo(stn.lat, stn.lng)
-        const stnGeo = new THREE.BoxGeometry(1.2, 0.6, 1.2)
-        const stnMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-        const stnMesh = new THREE.Mesh(stnGeo, stnMat)
-        stnMesh.position.set(x, 0.8, z)
-        stnMesh.castShadow = true
-        stnMesh.userData = { type: 'metroStation', data: { ...stn, lineName: line.name } }
-        metro.add(stnMesh)
-        interactives.push(stnMesh)
-      })
-
-      // Animated Metro Train
-      const trainGeo = new THREE.BoxGeometry(1.8, 0.4, 0.6)
-      const trainMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-      const train = new THREE.Mesh(trainGeo, trainMat)
-      metro.add(train)
-      sceneStateRef.current.trainMeshes.push({ mesh: train, curve, progress: Math.random() })
-    })
-
-    // ─── BUILD LAYER: 3D Landmark Civic Buildings ───
-    LANDMARK_BUILDINGS.forEach((bldg) => {
-      const { x, z } = projectGeo(bldg.lat, bldg.lng)
-      const bldgGroup = new THREE.Group()
-
-      // Height scaled for isometric visualization
-      const scaledH = Math.max(3, bldg.height * 0.16)
-      const bGeo = new THREE.BoxGeometry(bldg.footprintWidth * 0.35, scaledH, bldg.footprintDepth * 0.35)
-      const bMat = new THREE.MeshLambertMaterial({ color: bldg.color })
-      const bMesh = new THREE.Mesh(bGeo, bMat)
-      bMesh.position.set(0, scaledH / 2, 0)
-      bMesh.castShadow = true
-      bMesh.receiveShadow = true
-      bldgGroup.add(bMesh)
-
-      // Vidhana Soudha Dome
-      if (bldg.hasDome) {
-        const domeGeo = new THREE.CylinderGeometry(0, 2.5, 3.2, 16)
-        const domeMat = new THREE.MeshLambertMaterial({ color: bldg.accentColor || 0xd97706 })
-        const dome = new THREE.Mesh(domeGeo, domeMat)
-        dome.position.set(0, scaledH + 1.6, 0)
-        bldgGroup.add(dome)
-      }
-
-      bldgGroup.position.set(x, 0, z)
-      bldgGroup.userData = { type: 'building', data: bldg }
-      buildings.add(bldgGroup)
-
-      // Register bounding mesh for raycasting
-      bMesh.userData = { type: 'building', data: bldg }
-      interactives.push(bMesh)
-    })
-
-    // ─── BUILD LAYER: Active Grievance Incidents Pins ───
-    const defaultCoords = [
-      { id: 'BBMP-GRV-2026-8819', lat: 12.9863, lng: 77.7289, title: 'Road Hazard · Whitefield Main Rd' },
-      { id: 'BBMP-GRV-2026-8820', lat: 12.9282, lng: 77.6821, title: 'Drainage Overflow · Bellandur' },
-      { id: 'BBMP-GRV-2026-8821', lat: 12.9783, lng: 77.6385, title: 'Stormwater Slab Damaged · Indiranagar' },
-      { id: 'BBMP-GRV-2026-8822', lat: 12.9198, lng: 77.6392, title: 'Streetlight Transformer · HSR' },
-      { id: 'BBMP-GRV-2026-8823', lat: 12.9412, lng: 77.7321, title: 'Culvert Repair Work · Varthur' },
-    ]
-
-    const incidentItems = issues.length > 0 ? issues.slice(0, 10) : defaultCoords
-    const pinMeshes = []
-
-    incidentItems.forEach((item) => {
-      // If issue doesn't have exact lat/lng, estimate around Whitefield / Central
-      const lat = item.lat || 12.9400 + Math.random() * 0.05
-      const lng = item.lng || 77.6500 + Math.random() * 0.08
-      const { x, z } = projectGeo(lat, lng)
-
-      const pinGroup = new THREE.Group()
-
-      // Shaft
-      const shaftGeo = new THREE.CylinderGeometry(0.18, 0.18, 4.5, 8)
-      const shaftMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 })
-      const shaft = new THREE.Mesh(shaftGeo, shaftMat)
-      shaft.position.y = 2.25
-      pinGroup.add(shaft)
-
-      // Head
-      const headGeo = new THREE.SphereGeometry(1.0, 16, 16)
-      const headMat = new THREE.MeshLambertMaterial({ color: 0xdc2626 })
-      const head = new THREE.Mesh(headGeo, headMat)
-      head.position.y = 4.8
-      head.castShadow = true
-      pinGroup.add(head)
-
-      pinGroup.position.set(x, 0, z)
-      pinGroup.userData = { type: 'incident', data: item, lat, lng }
-      incidents.add(pinGroup)
-
-      head.userData = { type: 'incident', data: item, lat, lng }
-      interactives.push(head)
-      pinMeshes.push(pinGroup)
-    })
-
-    sceneStateRef.current.interactiveObjects = interactives
-
-    // ─── Raycaster Interaction ───
-    const raycaster = new THREE.Raycaster()
-    const mouse = new THREE.Vector2()
-
-    const onClick = (e) => {
-      const rect = container.getBoundingClientRect()
-      mouse.x = ((e.clientX - rect.left) / width) * 2 - 1
-      mouse.y = -(((e.clientY - rect.top) / height) * 2 - 1)
-
-      raycaster.setFromCamera(mouse, camera)
-      const intersects = raycaster.intersectObjects(sceneStateRef.current.interactiveObjects, true)
-
-      if (intersects.length > 0) {
-        let hit = intersects[0].object
-        while (hit && !hit.userData?.type && hit.parent) {
-          hit = hit.parent
-        }
-
-        if (hit && hit.userData?.type) {
-          const { type, data } = hit.userData
-          setSelectedNode({ type, data })
-
-          // Calculate real spatial relationships
-          const lat = data.lat || 12.9716
-          const lng = data.lng || 77.5946
-          const analysis = analyzeSpatialRelationships(lat, lng)
-          setSpatialAnalysis(analysis)
-
-          // Smooth camera glide to the asset
-          const { x, z } = projectGeo(lat, lng)
-          sceneStateRef.current.targetCamPos.set(x + 18, 24, z + 22)
-          sceneStateRef.current.targetLookAt.set(x, 1, z)
-        }
-      }
-    }
-    container.addEventListener('click', onClick)
-
-    // ─── Animation Loop ───
-    let animId
-    const clock = new THREE.Clock()
-
-    const animate = () => {
-      animId = requestAnimationFrame(animate)
-      const delta = clock.getDelta()
-      const elapsed = clock.getElapsedTime()
-
-      // Smooth camera interpolation
-      camera.position.x += (sceneStateRef.current.targetCamPos.x - camera.position.x) * 0.05
-      camera.position.y += (sceneStateRef.current.targetCamPos.y - camera.position.y) * 0.05
-      camera.position.z += (sceneStateRef.current.targetCamPos.z - camera.position.z) * 0.05
-
-      sceneStateRef.current.currentLookAt.x += (sceneStateRef.current.targetLookAt.x - sceneStateRef.current.currentLookAt.x) * 0.05
-      sceneStateRef.current.currentLookAt.y += (sceneStateRef.current.targetLookAt.y - sceneStateRef.current.currentLookAt.y) * 0.05
-      sceneStateRef.current.currentLookAt.z += (sceneStateRef.current.targetLookAt.z - sceneStateRef.current.currentLookAt.z) * 0.05
-      camera.lookAt(sceneStateRef.current.currentLookAt)
-
-      // Move Namma Metro Trains along routes
-      sceneStateRef.current.trainMeshes.forEach((t) => {
-        t.progress = (t.progress + delta * 0.05) % 1
-        const pt = t.curve.getPointAt(t.progress)
-        t.mesh.position.copy(pt)
-        const tangent = t.curve.getTangentAt(t.progress)
-        t.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), tangent)
-      })
-
-      // Bob incident pins
-      pinMeshes.forEach((pin, idx) => {
-        pin.position.y = Math.sin(elapsed * 3 + idx * 1.5) * 0.35
-      })
-
-      renderer.render(scene, camera)
-    }
-    animate()
-
-    // Resize Handler
-    const handleResize = () => {
-      if (!container) return
-      const w = container.clientWidth
-      const h = container.clientHeight || 560
-      camera.aspect = w / h
-      camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
-    }
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', handleResize)
-      container.removeEventListener('click', onClick)
-      if (renderer.domElement && container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement)
-      }
-      renderer.dispose()
-    }
-  }, [issues])
-
-  // Toggle Layer Visibility
-  useEffect(() => {
-    const { buildings, roads, metro, lakes, drains, incidents } = sceneStateRef.current.layerGroups
-    if (buildings) buildings.visible = layers.buildings
-    if (roads) roads.visible = layers.roads
-    if (metro) metro.visible = layers.metro
-    if (lakes) lakes.visible = layers.lakes
-    if (drains) drains.visible = layers.drains
-    if (incidents) incidents.visible = layers.incidents
-  }, [layers])
-
-  // Rainfall Flood Simulation Effect
-  useEffect(() => {
-    const lakeMeshes = sceneStateRef.current.lakeMeshes
-    const rainFactor = rainfallMm / 120 // 0 to 1
-
-    lakeMeshes.forEach(({ mesh, baseScale, lake }) => {
-      // Bellandur and Varthur swell during heavy rain
-      if (lake.id === 'LAKE_BELLANDUR' || lake.id === 'LAKE_VARTHUR') {
-        const swell = 1 + rainFactor * 0.35
-        mesh.scale.set(swell, swell, 1)
-        mesh.material.color.set(rainFactor > 0.6 ? 0x0369a1 : 0x0284c7)
-      }
-    })
-  }, [rainfallMm])
-
-  // Camera Presets
-  const applyPreset = (preset) => {
-    setCameraPreset(preset)
-    if (preset === 'overview') {
-      sceneStateRef.current.targetCamPos.set(0, 75, 95)
-      sceneStateRef.current.targetLookAt.set(0, 0, 0)
-    } else if (preset === 'soudha') {
-      const { x, z } = projectGeo(12.9797, 77.5907)
-      sceneStateRef.current.targetCamPos.set(x + 14, 18, z + 20)
-      sceneStateRef.current.targetLookAt.set(x, 2, z)
-    } else if (preset === 'orr') {
-      const { x, z } = projectGeo(12.9282, 77.6821) // Bellandur ORR
-      sceneStateRef.current.targetCamPos.set(x + 16, 20, z + 22)
-      sceneStateRef.current.targetLookAt.set(x, 1, z)
-    } else if (preset === 'basin') {
-      const { x, z } = projectGeo(12.9352, 77.6698) // Bellandur Lake Basin
-      sceneStateRef.current.targetCamPos.set(x + 20, 26, z + 26)
-      sceneStateRef.current.targetLookAt.set(x, 0, z)
-    } else if (preset === 'majestic') {
-      const { x, z } = projectGeo(12.9772, 77.5713) // Majestic
-      sceneStateRef.current.targetCamPos.set(x + 14, 18, z + 18)
-      sceneStateRef.current.targetLookAt.set(x, 1, z)
-    }
+  const toggleLayer = (layerKey) => {
+    setActiveLayers((prev) => ({ ...prev, [layerKey]: !prev[layerKey] }))
   }
 
-  // City-wide Health Metrics Computed Live
-  const cityHealth = 84 - Math.round((rainfallMm / 120) * 16)
-  const floodRiskIndex = Math.min(96, Math.round(28 + (rainfallMm / 120) * 65))
-  const trafficLoadIndex = Math.min(95, Math.round(68 + (rainfallMm / 120) * 22))
+  // Handle City View Preset click
+  const selectView = (view) => {
+    setActiveView(view.id)
+    setZoom(view.zoom)
+    setPan({ x: view.panX, y: view.panY })
+  }
+
+  // Mouse pan handlers
+  const onMouseDown = (e) => {
+    if (e.target.closest('button, input, a, .interactive-panel')) return
+    isDraggingRef.current = true
+    dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
+  }
+
+  const onMouseMove = (e) => {
+    if (!isDraggingRef.current) return
+    setPan({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y,
+    })
+  }
+
+  const onMouseUp = () => {
+    isDraggingRef.current = false
+  }
+
+  // Search Results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    return LANDMARKS.filter(
+      (l) =>
+        l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.kannada.includes(searchQuery)
+    )
+  }, [searchQuery])
+
+  const handleSelectSearch = (landmark) => {
+    setSelectedLandmark(landmark)
+    setSearchQuery('')
+    setSearchFocused(false)
+    // Pan to landmark
+    setPan({
+      x: (50 - landmark.leftPct) * 4,
+      y: (50 - landmark.topPct) * 3,
+    })
+    setZoom(1.3)
+  }
 
   return (
-    <div className="rounded-2xl border border-slate-300 bg-white overflow-hidden shadow-md">
-      {/* Official Geospatial Banner Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900">
-              Greater Bengaluru Authority (GBA) &bull; Geospatial Digital Twin
+    <div
+      className="relative w-full h-[640px] sm:h-[720px] rounded-2xl overflow-hidden select-none border border-slate-700 bg-slate-950 font-sans shadow-2xl"
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+    >
+      {/* ─── 1. Aerial 3D Canvas / Viewport Layer ─── */}
+      <div
+        className="absolute inset-0 transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing origin-center"
+        style={{
+          transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
+        }}
+      >
+        <img
+          src="/bengaluru_digital_twin_view.jpg"
+          alt="Bengaluru 3D Photorealistic Digital Twin Base"
+          className="w-full h-full object-cover object-center pointer-events-none filter brightness-[0.98] contrast-[1.04]"
+        />
+
+        {/* Airport Flight Path Vector Animation */}
+        {activeLayers.roads && (
+          <div className="absolute top-[12%] left-[53%] flex items-center gap-2 pointer-events-none">
+            <span className="text-white text-xs font-bold font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              ✈ Kempegowda International Airport
             </span>
-            <span className="text-[10px] font-mono font-bold bg-govblue text-white px-2 py-0.5 rounded">
-              WGS84 PROJECTION
-            </span>
-          </div>
-          <h3 className="font-display text-lg sm:text-xl font-black text-slate-900 mt-1">
-            Bengaluru Urban Infrastructure Matrix &bull; Live Telemetry
-          </h3>
-          <p className="font-kannada text-xs font-semibold text-slate-700">
-            ಬೆಂಗಳೂರು ಮಹಾನಗರ ಮೂಲಸೌಕರ್ಯ ಡಿಜಿಟಲ್ ಟ್ವಿನ್ - ನೈಜ ಭೌಗೋಳಿಕ ದತ್ತಾಂಶ
-          </p>
-        </div>
-
-        {/* Camera View Presets */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-mono text-slate-500 font-bold mr-1">Views:</span>
-          <button
-            onClick={() => applyPreset('overview')}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${
-              cameraPreset === 'overview' ? 'bg-civic text-white border-civic' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-          >
-            Metropolitan Overview
-          </button>
-          <button
-            onClick={() => applyPreset('soudha')}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${
-              cameraPreset === 'soudha' ? 'bg-civic text-white border-civic' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-          >
-            Vidhana Soudha
-          </button>
-          <button
-            onClick={() => applyPreset('orr')}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${
-              cameraPreset === 'orr' ? 'bg-civic text-white border-civic' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-          >
-            ORR Tech Belt
-          </button>
-          <button
-            onClick={() => applyPreset('basin')}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${
-              cameraPreset === 'basin' ? 'bg-civic text-white border-civic' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-          >
-            Bellandur Basin
-          </button>
-          <button
-            onClick={() => applyPreset('majestic')}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition ${
-              cameraPreset === 'majestic' ? 'bg-civic text-white border-civic' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
-          >
-            Majestic Hub
-          </button>
-        </div>
-      </div>
-
-      {/* Main 3D Digital Twin Viewport */}
-      <div className="relative h-[480px] sm:h-[580px] bg-slate-100 overflow-hidden">
-        {/* WebGL Canvas */}
-        <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-
-        {/* Top Left: Layer Stack Controls */}
-        <div className="absolute top-4 left-4 z-10 bg-white border border-slate-300 rounded-xl p-3 shadow-md max-w-xs space-y-2">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 text-xs font-bold text-slate-900 font-mono">
-            <span className="flex items-center gap-1.5">
-              <Layers size={14} className="text-govblue" /> GIS LAYER STACK
-            </span>
-            <span className="text-[10px] text-slate-500">7 ACTIVE</span>
-          </div>
-
-          <div className="space-y-1.5 text-xs">
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.buildings}
-                onChange={(e) => setLayers((p) => ({ ...p, buildings: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span>3D Buildings &amp; Landmarks</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.roads}
-                onChange={(e) => setLayers((p) => ({ ...p, roads: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span className="flex items-center gap-1">
-                <Car size={12} className="text-amber-600" /> Arterial Road Traffic Index
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.metro}
-                onChange={(e) => setLayers((p) => ({ ...p, metro: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span className="flex items-center gap-1">
-                <Train size={12} className="text-purple-600" /> Namma Metro Corridors (Purple/Green)
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.lakes}
-                onChange={(e) => setLayers((p) => ({ ...p, lakes: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span className="flex items-center gap-1">
-                <Droplets size={12} className="text-blue-600" /> Lakes (Bellandur, Varthur, Ulsoor)
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.drains}
-                onChange={(e) => setLayers((p) => ({ ...p, drains: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-teal-700" /> Rajakaluve Stormwater Drains
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-              <input
-                type="checkbox"
-                checked={layers.incidents}
-                onChange={(e) => setLayers((p) => ({ ...p, incidents: e.target.checked }))}
-                className="rounded text-govblue focus:ring-0"
-              />
-              <span className="flex items-center gap-1 text-rose-700 font-bold">
-                <MapPin size={12} /> Active Grievance Dockets
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Top Right: Monsoon Cloudburst & Flood Simulator Slider */}
-        <div className="absolute top-4 right-4 z-10 bg-white border border-slate-300 rounded-xl p-3 shadow-md w-72 space-y-2">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-1 text-xs font-mono font-bold text-slate-900">
-            <span className="flex items-center gap-1.5 text-govblue">
-              <CloudRain size={15} /> MONSOON FLOOD SIMULATOR
-            </span>
-            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${rainfallMm > 70 ? 'bg-rose-100 text-rose-900' : 'bg-blue-100 text-blue-900'}`}>
-              {rainfallMm > 70 ? 'HIGH INUNDATION' : 'ROUTINE RAIN'}
-            </span>
-          </div>
-
-          <div>
-            <div className="flex justify-between text-[11px] font-mono text-slate-600 mb-1">
-              <span>Rainfall Intensity</span>
-              <strong className="text-slate-900">{rainfallMm} mm/hr</strong>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="120"
-              value={rainfallMm}
-              onChange={(e) => setRainfallMm(Number(e.target.value))}
-              className="w-full accent-govblue cursor-pointer h-1.5 bg-slate-200 rounded-lg"
-            />
-            <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-0.5">
-              <span>0 (Dry)</span>
-              <span>60 (Heavy)</span>
-              <span>120 (Cloudburst)</span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2 text-[11px] font-mono">
-            <div className="bg-slate-50 p-1.5 rounded border border-slate-200">
-              <span className="text-slate-500 block text-[9px]">Bellandur Swell</span>
-              <strong className="text-slate-900">+{Math.round((rainfallMm / 120) * 35)}% Vol</strong>
-            </div>
-            <div className="bg-slate-50 p-1.5 rounded border border-slate-200">
-              <span className="text-slate-500 block text-[9px]">Catchment Risk</span>
-              <strong className={floodRiskIndex > 70 ? 'text-rose-700' : 'text-amber-700'}>
-                {floodRiskIndex} / 100
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Left: Relational Urban Infrastructure Node Inspector Drawer */}
-        {selectedNode && spatialAnalysis && (
-          <div className="absolute bottom-4 left-4 z-20 bg-white border-2 border-govblue rounded-xl p-4 shadow-xl max-w-sm sm:max-w-md animate-pageIn">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-2">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300">
-                  {selectedNode.type.toUpperCase()} NODE INSPECTED
-                </span>
-                <h4 className="font-display font-black text-base text-slate-900 mt-1 leading-snug">
-                  {selectedNode.data.name || selectedNode.data.title || selectedNode.data.id}
-                </h4>
-                {selectedNode.data.kannada && (
-                  <p className="font-kannada text-xs font-semibold text-amber-700">
-                    {selectedNode.data.kannada}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Relational Cross-Layer Matrix Connectivity */}
-            <div className="mt-3 space-y-2 text-xs">
-              <div className="font-mono text-[10px] font-bold uppercase text-govblue tracking-wider">
-                Cross-Layer Topology Matrix Relationships:
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                {/* Nearest Drain */}
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-mono text-[9px] uppercase block">Nearest Rajakaluve Drain</span>
-                  <strong className="text-slate-900 block truncate">{spatialAnalysis.nearestDrain.name}</strong>
-                  <span className="font-mono text-slate-600 text-[10px] font-bold">
-                    Dist: {spatialAnalysis.nearestDrain.distanceMeters}m
-                  </span>
-                </div>
-
-                {/* Nearest Lake */}
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-mono text-[9px] uppercase block">Nearest Lake Catchment</span>
-                  <strong className="text-slate-900 block truncate">{spatialAnalysis.nearestLake.name}</strong>
-                  <span className="font-mono text-slate-600 text-[10px] font-bold">
-                    Dist: {spatialAnalysis.nearestLake.distanceMeters}m
-                  </span>
-                </div>
-
-                {/* Nearest Metro */}
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-mono text-[9px] uppercase block">Nearest Namma Metro</span>
-                  <strong className="text-slate-900 block truncate">{spatialAnalysis.nearestMetro.station}</strong>
-                  <span className="font-mono text-slate-600 text-[10px] font-bold">
-                    Dist: {spatialAnalysis.nearestMetro.distanceMeters}m
-                  </span>
-                </div>
-
-                {/* Nearest Road */}
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-mono text-[9px] uppercase block">Nearest Arterial Road</span>
-                  <strong className="text-slate-900 block truncate">{spatialAnalysis.nearestRoad.name}</strong>
-                  <span className="font-mono text-slate-600 text-[10px] font-bold">
-                    Dist: {spatialAnalysis.nearestRoad.distanceMeters}m
-                  </span>
-                </div>
-              </div>
-
-              {/* Dynamic Risk Matrix */}
-              <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between text-xs">
-                <div>
-                  <span className="font-bold text-amber-950 block">Spatial Inundation Vulnerability</span>
-                  <span className="text-[10px] text-amber-800">Based on elevation, lake proximity &amp; drain silt</span>
-                </div>
-                <span className="font-mono font-black text-sm px-2 py-0.5 rounded bg-amber-200 text-amber-950">
-                  {spatialAnalysis.computedFloodRisk} / 100
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2.5 border-t border-slate-200 flex justify-between items-center text-[11px] font-mono">
-              <span className="text-slate-500">Jurisdiction: {selectedNode.data.corporation || 'Greater Bengaluru'}</span>
-              <button
-                onClick={() => applyPreset('overview')}
-                className="text-govblue font-bold hover:underline"
-              >
-                Reset Camera &rarr;
-              </button>
-            </div>
           </div>
         )}
 
-        {/* Bottom Right: Live Infrastructure State Telemetry */}
-        <div className="absolute bottom-4 right-4 z-10 bg-white border border-slate-300 rounded-xl p-3 shadow-md text-xs font-mono space-y-2 hidden md:block">
-          <div className="font-bold text-slate-900 border-b border-slate-200 pb-1 flex items-center justify-between gap-4">
-            <span>CITY INFRASTRUCTURE STATE</span>
-            <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 rounded border border-emerald-200">
-              LIVE MATRIX
-            </span>
+        {/* Metro Track Corridors */}
+        {activeLayers.metro && (
+          <>
+            {METRO_NODES.map((stn) => (
+              <div
+                key={stn.name}
+                style={{ top: `${stn.topPct}%`, left: `${stn.leftPct}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center pointer-events-none"
+              >
+                <div className="h-6 w-6 rounded-full bg-purple-600 border-2 border-white flex items-center justify-center text-white font-mono text-[10px] font-black shadow-lg">
+                  M
+                </div>
+                <span className="text-[11px] font-bold text-white bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700 mt-0.5 shadow-md">
+                  {stn.name}
+                </span>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Clickable 3D Hotspot Markers */}
+        {LANDMARKS.map((item) => {
+          // Visibility based on layer filter
+          if (!activeLayers[item.category]) return null
+
+          const isSelected = selectedNodeOrActive(selectedLandmark, item)
+
+          return (
+            <div
+              key={item.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedLandmark(item)
+              }}
+              style={{ top: `${item.topPct}%`, left: `${item.leftPct}%` }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 group ${
+                isSelected ? 'scale-110' : 'hover:scale-105'
+              }`}
+            >
+              {/* Active Selection Glow Ring */}
+              {isSelected && (
+                <div className="absolute -inset-2 rounded-full border-2 border-cyan-400 animate-ping pointer-events-none opacity-60" />
+              )}
+
+              {/* Pin Badge with Icon & Label */}
+              <div
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide shadow-xl border transition-all ${
+                  isSelected
+                    ? 'bg-cyan-500 text-slate-950 border-white shadow-cyan-500/50 scale-105'
+                    : 'bg-slate-900/90 text-white border-slate-600/80 hover:bg-slate-800 hover:border-cyan-400'
+                }`}
+              >
+                {getCategoryIcon(item.category)}
+                <span className="whitespace-nowrap font-display text-[11px]">
+                  {item.name}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ─── 2. Top Navigation Bar ─── */}
+      <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-auto gap-3">
+        {/* Top-Left: Logo & Title Card */}
+        <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-700/80 px-4 py-2.5 rounded-xl shadow-lg interactive-panel backdrop-blur-md">
+          <div className="h-9 w-9 rounded-lg bg-cyan-600 flex items-center justify-center text-white shadow-md shrink-0">
+            <Building2 size={20} />
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <span className="text-[10px] text-slate-500 block">Health Index</span>
-              <strong className="text-sm font-black text-slate-900">{cityHealth}%</strong>
+          <div>
+            <h1 className="font-display text-sm sm:text-base font-extrabold text-white tracking-wide leading-none">
+              Bengaluru Urban Infrastructure Matrix
+            </h1>
+            <p className="font-mono text-[10px] text-slate-400 mt-1">
+              Real 3D City &bull; Real Infrastructure &bull; Smarter Cities
+            </p>
+          </div>
+        </div>
+
+        {/* Center: Search Bar with Autocomplete Dropdown */}
+        <div className="relative flex-1 max-w-md hidden md:block interactive-panel">
+          <div className="relative flex items-center">
+            <Search size={15} className="absolute left-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              placeholder="Search Bengaluru (e.g. UB City, Vidhana Soudha, Ulsoor Lake)..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition shadow-lg"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 text-slate-400 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Autocomplete Dropdown */}
+          {searchFocused && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+              {searchResults.map((result) => (
+                <div
+                  key={result.id}
+                  onClick={() => handleSelectSearch(result)}
+                  className="px-3.5 py-2.5 hover:bg-slate-800/90 cursor-pointer flex items-center justify-between border-b border-slate-800/60 last:border-0"
+                >
+                  <div className="flex items-center gap-2">
+                    {getCategoryIcon(result.category)}
+                    <div>
+                      <span className="text-xs font-bold text-white block">
+                        {result.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {result.type} &bull; {result.kannada}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-500" />
+                </div>
+              ))}
             </div>
-            <div>
-              <span className="text-[10px] text-slate-500 block">Traffic Load</span>
-              <strong className="text-sm font-black text-amber-600">{trafficLoadIndex}%</strong>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 block">Flood Vulnerability</span>
-              <strong className="text-sm font-black text-rose-600">{floodRiskIndex}%</strong>
-            </div>
+          )}
+        </div>
+
+        {/* Top-Right: Location Pill, Live Status, Compass */}
+        <div className="flex items-center gap-2.5 interactive-panel">
+          <div className="hidden lg:flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-2 rounded-xl text-xs font-mono shadow-lg text-slate-300">
+            <MapPin size={14} className="text-cyan-400" />
+            <span>Bengaluru, Karnataka, India</span>
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-2 rounded-xl text-xs font-mono shadow-lg">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-emerald-400 font-bold text-[11px]">3D City Online</span>
+          </div>
+
+          {/* Compass Rose */}
+          <div
+            onClick={() => setPan({ x: 0, y: 0 })}
+            className="h-9 w-9 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-center text-rose-500 hover:text-white cursor-pointer shadow-lg transition"
+            title="Reset North Heading"
+          >
+            <Compass size={18} className="animate-spin-slow" />
           </div>
         </div>
       </div>
 
-      {/* GBA 5 City Corporations Quick Overview Ribbon */}
-      <div className="p-4 bg-slate-50 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-        {GBA_CORPORATIONS.map((corp) => (
-          <div key={corp.id} className="p-2.5 rounded-lg border border-slate-200 bg-white">
-            <span className="font-display font-bold text-slate-900 block truncate">{corp.name.replace(' Bengaluru Corporation', '')}</span>
-            <span className="text-[10px] font-kannada text-slate-500 block truncate">{corp.kannada.split(' ')[0]}</span>
-            <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-slate-600">
-              <span>{corp.wardsCount} Wards</span>
-              <span className="text-amber-700 font-bold">{corp.activeIncidents} Active</span>
+      {/* ─── 3. Left Control Panel (Layers & City Views) ─── */}
+      <div className="absolute top-20 left-4 z-30 w-56 max-h-[calc(100%-110px)] overflow-y-auto bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl p-3.5 space-y-4 interactive-panel thin-scrollbar text-xs">
+        {/* Layer Toggles Section */}
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
+            <Layers size={13} className="text-cyan-400" /> Layers
+          </div>
+          <div className="space-y-1.5">
+            <LayerCheckbox
+              checked={activeLayers.buildings}
+              onChange={() => toggleLayer('buildings')}
+              label="Buildings"
+              icon={<Building2 size={13} className="text-sky-400" />}
+            />
+            <LayerCheckbox
+              checked={activeLayers.terrain}
+              onChange={() => toggleLayer('terrain')}
+              label="Terrain"
+              icon={<span className="text-xs">🏔️</span>}
+            />
+            <LayerCheckbox
+              checked={activeLayers.roads}
+              onChange={() => toggleLayer('roads')}
+              label="Roads"
+              icon={<Car size={13} className="text-amber-400" />}
+            />
+            <LayerCheckbox
+              checked={activeLayers.metro}
+              onChange={() => toggleLayer('metro')}
+              label="Metro"
+              icon={<Train size={13} className="text-purple-400" />}
+            />
+            <LayerCheckbox
+              checked={activeLayers.lakes}
+              onChange={() => toggleLayer('lakes')}
+              label="Lakes"
+              icon={<Droplets size={13} className="text-blue-400" />}
+            />
+            <LayerCheckbox
+              checked={activeLayers.parks}
+              onChange={() => toggleLayer('parks')}
+              label="Parks"
+              icon={<Trees size={13} className="text-emerald-400" />}
+            />
+            <LayerCheckbox
+              checked={activeLayers.adminBoundary}
+              onChange={() => toggleLayer('adminBoundary')}
+              label="Administrative Boundary"
+              icon={<span className="text-xs">🗺️</span>}
+            />
+          </div>
+        </div>
+
+        {/* City View Presets Section */}
+        <div className="pt-3 border-t border-slate-800">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
+            <Navigation size={13} className="text-cyan-400" /> City View
+          </div>
+          <div className="space-y-1">
+            {CITY_VIEWS.map((view) => (
+              <button
+                key={view.id}
+                onClick={() => selectView(view)}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
+                  activeView === view.id
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <MapPin size={12} className={activeView === view.id ? 'text-cyan-400' : 'text-slate-500'} />
+                <span className="truncate">{view.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 4. Right Inspector Card (Asset Details & Nearby Infrastructure) ─── */}
+      {selectedLandmark && (
+        <div className="absolute top-20 right-4 z-30 w-80 sm:w-88 max-h-[calc(100%-110px)] overflow-y-auto bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl p-4 interactive-panel thin-scrollbar text-xs space-y-3.5 animate-pageIn">
+          {/* Card Header with Image Thumbnail */}
+          <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={selectedLandmark.image}
+                alt={selectedLandmark.name}
+                className="h-14 w-14 rounded-xl object-cover border border-slate-700 shrink-0"
+              />
+              <div>
+                <h3 className="font-display font-black text-sm text-white leading-tight">
+                  {selectedLandmark.name}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {selectedLandmark.type}
+                </p>
+                <p className="font-kannada text-[10px] text-amber-400 mt-0.5">
+                  {selectedLandmark.kannada}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedLandmark(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Details Section */}
+          <div>
+            <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Details
+            </div>
+            <div className="space-y-1.5 text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Height</span>
+                <span className="text-white font-mono font-semibold">{selectedLandmark.details.height}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Floors</span>
+                <span className="text-white font-mono font-semibold">{selectedLandmark.details.floors}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Building Type</span>
+                <span className="text-white font-medium">{selectedLandmark.details.buildingType}</span>
+              </div>
+              <div className="pt-1">
+                <span className="text-slate-400 block text-[10px]">Address</span>
+                <span className="text-slate-200 text-[11px] leading-snug">{selectedLandmark.details.address}</span>
+              </div>
+              <div className="flex justify-between pt-1 text-[10px] text-slate-500 font-mono">
+                <span>Source: {selectedLandmark.details.source}</span>
+                <span>{selectedLandmark.details.lastUpdated}</span>
+              </div>
             </div>
           </div>
-        ))}
+
+          {/* Nearby Infrastructure (Relational Matrix) */}
+          <div className="pt-3 border-t border-slate-800">
+            <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 mb-2">
+              Nearby Infrastructure
+            </div>
+            <div className="space-y-2 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Car size={13} className="text-amber-400" /> Nearest Road
+                </span>
+                <span className="font-mono text-white font-bold">{selectedLandmark.nearby.road}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Train size={13} className="text-purple-400" /> Nearest Metro Station
+                </span>
+                <span className="font-mono text-white font-bold">{selectedLandmark.nearby.metro}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Droplets size={13} className="text-blue-400" /> Nearest Lake
+                </span>
+                <span className="font-mono text-white font-bold">{selectedLandmark.nearby.lake}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <Trees size={13} className="text-emerald-400" /> Nearest Park
+                </span>
+                <span className="font-mono text-white font-bold">{selectedLandmark.nearby.park}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <span className="h-2 w-2 rounded-full bg-teal-400" /> Nearest Drain
+                </span>
+                <span className="font-mono text-white font-bold">{selectedLandmark.nearby.drain}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Coordinates & Action */}
+          <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono">
+            <div>
+              <span className="text-[9px] text-slate-500 uppercase block">Coordinates</span>
+              <span className="text-cyan-300 font-bold">{selectedLandmark.coords}</span>
+            </div>
+            <button
+              onClick={() => {
+                setPan({
+                  x: (50 - selectedLandmark.leftPct) * 4,
+                  y: (50 - selectedLandmark.topPct) * 3,
+                })
+                setZoom(1.4)
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs transition"
+            >
+              View in Map
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 5. Bottom Dock & Footer Controls ─── */}
+      <div className="absolute bottom-3 left-4 right-4 z-30 flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
+        {/* Bottom-Left: Data Sources & Attribution */}
+        <div className="bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-xl text-[11px] font-mono text-slate-400 shadow-lg interactive-panel hidden sm:flex items-center gap-2">
+          <span className="font-bold text-slate-300">Data Sources:</span>
+          <span>Cesium</span>
+          <span>&bull;</span>
+          <span>OpenStreetMap</span>
+          <span>&bull;</span>
+          <span>Government of Karnataka</span>
+          <a
+            href="https://www.bbmp.gov.in/gisviewer/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400 hover:underline ml-1 font-bold"
+          >
+            View Details
+          </a>
+        </div>
+
+        {/* Bottom-Center: Live Layer Status Ticker */}
+        <div className="bg-slate-900/95 border border-slate-700/80 px-4 py-2 rounded-xl shadow-lg interactive-panel flex items-center gap-3 overflow-x-auto text-[11px] font-mono">
+          <StatusBadge icon={<Building2 size={12} className="text-sky-400" />} label="Buildings" status="ONLINE" />
+          <span className="text-slate-700">|</span>
+          <StatusBadge icon={<Car size={12} className="text-amber-400" />} label="Roads" status="ONLINE" />
+          <span className="text-slate-700">|</span>
+          <StatusBadge icon={<Train size={12} className="text-purple-400" />} label="Metro" status="ONLINE" />
+          <span className="text-slate-700">|</span>
+          <StatusBadge icon={<Droplets size={12} className="text-blue-400" />} label="Lakes" status="ONLINE" />
+          <span className="text-slate-700">|</span>
+          <StatusBadge icon={<span className="h-1.5 w-1.5 rounded-full bg-rose-500" />} label="Drains" status="DATA REQUIRED" warning />
+          <span className="text-slate-700">|</span>
+          <StatusBadge icon={<Trees size={12} className="text-emerald-400" />} label="Parks" status="ONLINE" />
+        </div>
+
+        {/* Bottom-Right: Day/Night Mode & Scale Bar */}
+        <div className="bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-lg interactive-panel flex items-center gap-3 text-xs font-mono text-slate-300">
+          <button
+            onClick={() => setIsDaylight(!isDaylight)}
+            className="p-1 rounded text-slate-400 hover:text-white"
+            title="Toggle Daylight / Satellite Mode"
+          >
+            {isDaylight ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-cyan-300" />}
+          </button>
+          <div className="flex items-center gap-1.5 border-l border-slate-700 pl-2 text-[10px] text-slate-400">
+            <span>0</span>
+            <div className="h-1 w-12 bg-slate-600 rounded-full" />
+            <span>1</span>
+            <span>2</span>
+            <span>5 km</span>
+          </div>
+        </div>
       </div>
     </div>
   )
+}
+
+function LayerCheckbox({ checked, onChange, label, icon }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer py-1 px-1.5 rounded hover:bg-slate-800/80 transition">
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className="text-slate-300 text-xs font-medium">{label}</span>
+      </div>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="rounded bg-slate-800 border-slate-600 text-cyan-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+      />
+    </label>
+  )
+}
+
+function StatusBadge({ icon, label, status, warning = false }) {
+  return (
+    <div className="flex items-center gap-1.5 shrink-0">
+      {icon}
+      <span className="text-slate-300 font-bold">{label}</span>
+      <span
+        className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+          warning ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+        }`}
+      >
+        {status}
+      </span>
+    </div>
+  )
+}
+
+function getCategoryIcon(category) {
+  switch (category) {
+    case 'buildings':
+      return <Building2 size={13} className="text-cyan-400" />
+    case 'lakes':
+      return <Droplets size={13} className="text-blue-400" />
+    case 'parks':
+      return <Trees size={13} className="text-emerald-400" />
+    case 'metro':
+      return <Train size={13} className="text-purple-400" />
+    default:
+      return <MapPin size={13} className="text-amber-400" />
+  }
+}
+
+function selectedNodeOrActive(selected, item) {
+  return selected && selected.id === item.id
 }
