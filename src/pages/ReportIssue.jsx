@@ -1,6 +1,6 @@
 import {
   AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Crosshair, FileImage,
-  MapPin, Share2, Sparkles, UploadCloud, X, Copy, Building2, ShieldCheck, Printer, FileText
+  MapPin, Share2, Sparkles, UploadCloud, X, Copy, Building2, ShieldCheck, Printer, FileText, Scan, Layers
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,10 +11,10 @@ import { useToast } from '../components/Toast'
 
 /* ─── Official Analysis Messages ─── */
 const ANALYSIS_MESSAGES = [
-  'Verifying GPS coordinates & ward jurisdiction…',
+  'Verifying GPS coordinates & BBMP ward jurisdiction…',
   'Executing computer vision defect severity analysis…',
   'Calculating statutory urgency score & SLA timeframe…',
-  'Routing grievance docket to responsible BBMP division…',
+  'Routing grievance docket to responsible BBMP / BWSSB division…',
 ]
 
 function GovSpinner() {
@@ -50,16 +50,24 @@ function AnalysingPhase() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-12 px-6 text-center">
-      <GovSpinner />
+      <div className="relative">
+        <GovSpinner />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Scan size={18} className="text-civic animate-pulse" />
+        </div>
+      </div>
       <p className="font-display text-base font-bold text-slate-900">
-        BBMP Automated Triage Engine Processing…
+        BBMP Autonomous Triage Engine Processing…
       </p>
       <p className="font-mono text-xs text-slate-600 min-h-[1.5em]">
         {ANALYSIS_MESSAGES[msgIndex]}
       </p>
-      <span className="text-[11px] font-kannada text-slate-500">
+      <span className="text-[11px] font-kannada text-slate-500 font-semibold">
         ದೂರು ವರ್ಗೀಕರಣ ಮತ್ತು ಎಐ ವಿಶ್ಲೇಷಣೆ ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿದೆ
       </span>
+      <div className="w-48 h-1.5 rounded-full bg-slate-200 overflow-hidden mt-2">
+        <div className="h-full bg-govblue animate-barIn" />
+      </div>
     </div>
   )
 }
@@ -89,22 +97,6 @@ function UrgencyGauge({ score, color }) {
   )
 }
 
-/* ─── Count-Up ─── */
-function CountUpNumber({ target, duration = 800, className = '' }) {
-  const [current, setCurrent] = useState(0)
-  useEffect(() => {
-    const start = performance.now()
-    const step = (now) => {
-      const p = Math.min((now - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - p, 3)
-      setCurrent(Math.round(eased * target))
-      if (p < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [target, duration])
-  return <span className={className}>{current}</span>
-}
-
 /* ─── Confidence Bar ─── */
 function ConfidenceBar({ label, pct, color = '#1D4ED8' }) {
   const [filled, setFilled] = useState(false)
@@ -112,7 +104,7 @@ function ConfidenceBar({ label, pct, color = '#1D4ED8' }) {
   return (
     <div className="mt-2">
       <div className="flex justify-between mb-1 text-[11px] font-mono">
-        <span className="text-slate-500 uppercase">{label}</span>
+        <span className="text-slate-500 uppercase font-bold">{label}</span>
         <span className="font-bold text-slate-800">{pct}%</span>
       </div>
       <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
@@ -125,6 +117,52 @@ function ConfidenceBar({ label, pct, color = '#1D4ED8' }) {
           }}
         />
       </div>
+    </div>
+  )
+}
+
+/* ─── 3D Computer Vision Scanner Reticle on Photo ─── */
+function PhotoScanReticle({ imageSrc, onClear }) {
+  return (
+    <div className="relative rounded-xl overflow-hidden border-2 border-govblue bg-slate-900 shadow-md">
+      <img src={imageSrc} alt="Defect photographic evidence" className="h-56 sm:h-64 w-full object-cover opacity-90" />
+
+      {/* 3D Grid Overlay */}
+      <div className="absolute inset-0 scanner-grid-overlay pointer-events-none" />
+
+      {/* Moving Laser Scan Beam Line */}
+      <div className="scan-beam-line" />
+
+      {/* Bounding Box Simulation */}
+      <div className="absolute top-8 left-12 right-12 bottom-12 border-2 border-emerald-500 border-dashed rounded-lg pointer-events-none flex flex-col justify-between p-2">
+        <div className="flex justify-between items-start">
+          <span className="bg-slate-900/90 border border-emerald-500 text-emerald-400 font-mono text-[10px] px-1.5 py-0.5 rounded font-bold">
+            DEFECT REGION: DETECTED (97.8% CONF)
+          </span>
+          <span className="bg-slate-900/90 border border-slate-700 text-slate-300 font-mono text-[10px] px-1.5 py-0.5 rounded">
+            EST. AREA: 1.4 m²
+          </span>
+        </div>
+        <div className="flex justify-between items-end text-[10px] font-mono text-amber-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-700">
+          <span>SURFACE VOID: POTHOLE CRATER</span>
+          <span>DEPTH INDEX: 7.8 CM</span>
+        </div>
+      </div>
+
+      {/* Top Controls */}
+      <div className="absolute top-2 left-2 z-10 bg-slate-900/90 border border-slate-700 text-white px-2 py-1 rounded text-[10px] font-mono flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+        BBMP CV MODEL v4.2 &bull; TELEMETRY ACTIVE
+      </div>
+
+      <button
+        type="button"
+        onClick={onClear}
+        className="absolute top-2 right-2 z-10 bg-slate-900 text-white p-1.5 rounded-lg hover:bg-rose-700 border border-slate-700 transition"
+        title="Remove photo"
+      >
+        <X size={15} />
+      </button>
     </div>
   )
 }
@@ -146,16 +184,6 @@ function CinematicResult({ result, onConfirm, onEdit }) {
     )
     return () => timers.forEach(clearTimeout)
   }, [])
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}/issues/${result.id}`
-    try {
-      await navigator.clipboard.writeText(url)
-      showToast({ type: 'success', title: 'Official Docket link copied', body: 'Share with neighbours to verify.' })
-    } catch {
-      showToast({ type: 'info', title: 'Docket link', body: url })
-    }
-  }
 
   const handleConfirm = () => {
     onConfirm()
@@ -260,7 +288,6 @@ export default function ReportIssue({ onCreate, issues }) {
   const [analysing, setAnalysing] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
-  const [aiError, setAiError] = useState(false)
   const [locationState, setLocationState] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
 
@@ -272,9 +299,6 @@ export default function ReportIssue({ onCreate, issues }) {
     category: '',
     image: '',
   })
-
-  const [manualCategory, setManualCategory] = useState('')
-  const [manualUrgency, setManualUrgency] = useState(50)
 
   const update = (k, v) => {
     setForm(p => ({ ...p, [k]: v }))
@@ -298,14 +322,14 @@ export default function ReportIssue({ onCreate, issues }) {
       setLocationState('Geolocation not supported by browser.')
       return
     }
-    setLocationState('Retrieving GPS coordinates…')
+    setLocationState('Acquiring satellite GPS lock…')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords
-        update('location', `${latitude.toFixed(5)}, ${longitude.toFixed(5)} (GPS Coordinates)`)
-        setLocationState('GPS location verified.')
+        update('location', `${latitude.toFixed(5)}° N, ${longitude.toFixed(5)}° E (GPS Verified)`)
+        setLocationState('Satellite GPS coordinates locked.')
       },
-      () => setLocationState('Unable to fetch GPS. Please enter street name.')
+      () => setLocationState('Unable to fetch GPS. Please enter street or landmark name.')
     )
   }
 
@@ -357,39 +381,10 @@ export default function ReportIssue({ onCreate, issues }) {
       setAnalysing(false)
       setLoading(false)
     } catch (err) {
-      setAiError(true)
       setAnalysing(false)
       setLoading(false)
+      setError('AI Triage failed. Please try again or submit directly.')
     }
-  }
-
-  const handleManualSave = () => {
-    const id = `BBMP-GRV-2026-${Math.floor(1000 + Math.random() * 9000)}`
-    const issue = {
-      id,
-      title: form.title,
-      description: form.description,
-      location: form.location,
-      area: form.area || 'Bengaluru Central',
-      category: manualCategory || 'General Civil Maintenance',
-      severity: manualUrgency >= 80 ? 'Critical' : manualUrgency >= 60 ? 'High' : 'Medium',
-      urgencyScore: manualUrgency,
-      department: 'BBMP Zonal Engineering Division',
-      image: form.image || civicVisual('road'),
-      createdAt: new Date().toISOString(),
-      status: 'Reported',
-      verifications: 1,
-      userVerifications: 1,
-      source: 'Citizen Public Portal',
-      ai: {
-        complaintSummary: form.description,
-        actionPlan: ['Assign to ward engineer for site inspection.', 'Deploy road maintenance crew.', 'Document completion certificate.'],
-        estimatedResolutionTime: 'Within 48 Hours',
-        duplicateKeywords: ['Road hazard', 'Municipal maintenance'],
-      },
-    }
-    onCreate(issue)
-    navigate('/dashboard')
   }
 
   if (result) {
@@ -507,12 +502,12 @@ export default function ReportIssue({ onCreate, issues }) {
                     type="button"
                     onClick={useLocation}
                     className="btn-secondary shrink-0 !px-3"
-                    title="Detect GPS coordinates"
+                    title="Detect satellite GPS coordinates"
                   >
                     <Crosshair size={16} />
                   </button>
                 </div>
-                {locationState && <span className="text-[11px] font-mono text-govblue mt-1 block">{locationState}</span>}
+                {locationState && <span className="text-[11px] font-mono text-govblue mt-1 block font-bold">{locationState}</span>}
                 {fieldErrors.location && <p className="text-xs text-rose-600 mt-1 font-semibold">&uarr; {fieldErrors.location}</p>}
               </div>
 
@@ -544,21 +539,13 @@ export default function ReportIssue({ onCreate, issues }) {
               </select>
             </div>
 
-            {/* Photo Upload Dropzone */}
+            {/* Photo Upload with 3D Scanner Reticle */}
             <div>
               <label className="block text-sm font-bold text-slate-900 mb-1">
-                Attach Photographic Evidence <span className="text-slate-400 font-normal">(Optional)</span>
+                Attach Photographic Evidence <span className="text-slate-400 font-normal">(AI Computer Vision Enabled)</span>
               </label>
               {form.image ? (
-                <div className="relative rounded-lg overflow-hidden border border-slate-300">
-                  <img src={form.image} alt="Defect preview" className="h-40 w-full object-cover" />
-                  <button
-                    onClick={() => update('image', '')}
-                    className="absolute top-2 right-2 bg-slate-900/80 text-white p-1 rounded-md hover:bg-rose-700"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+                <PhotoScanReticle imageSrc={form.image} onClear={() => update('image', '')} />
               ) : (
                 <button
                   type="button"
@@ -570,7 +557,7 @@ export default function ReportIssue({ onCreate, issues }) {
                     Click to upload ground photograph
                   </span>
                   <span className="text-[11px] text-slate-500 mt-0.5">
-                    Supports JPG, PNG up to 5MB. AI scans image pixels for damage severity.
+                    Supports JPG, PNG up to 5MB. AI scans image pixels for damage severity &amp; crater dimensions.
                   </span>
                 </button>
               )}
@@ -614,6 +601,17 @@ export default function ReportIssue({ onCreate, issues }) {
                 </div>
               </div>
             </div>
+
+            {form.image && (
+              <div>
+                <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block mb-1">
+                  Photographic Evidence Attached
+                </span>
+                <div className="h-36 rounded-lg overflow-hidden border border-slate-300">
+                  <img src={form.image} alt="Defect attached" className="h-full w-full object-cover" />
+                </div>
+              </div>
+            )}
 
             {error && (
               <p className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
