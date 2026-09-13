@@ -1,6 +1,8 @@
-import { ArrowRight, Bot, Camera, CheckCircle2, ShieldCheck, Users, Building2, PhoneCall, FileText, CheckCheck, Clock, MapPin, Wrench, Eye, ShieldAlert, Sparkles } from 'lucide-react'
+import { ArrowRight, Bot, Camera, CheckCircle2, ShieldCheck, Users, Building2, PhoneCall, FileText, CheckCheck, Clock, MapPin, Wrench, Eye, ShieldAlert, Sparkles, Layers, Globe } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroAnalysisCard from '../components/HeroAnalysisCard'
+import BengaluruDigitalTwin from '../components/BengaluruDigitalTwin'
 import ThreeCityCanvas from '../components/ThreeCityCanvas'
 import ThreeMachineryViewer from '../components/ThreeMachineryViewer'
 import CivicHotspots from '../components/CivicHotspots'
@@ -143,7 +145,9 @@ function StepCard3D({ item }) {
   )
 }
 
-export default function Home() {
+export default function Home({ issues = [] }) {
+  const [digitalTwinMode, setDigitalTwinMode] = useState('geospatial') // 'geospatial' | 'wardSimulation'
+
   return (
     <main className="bg-slate-50 text-slate-900">
       {/* Official Government Live Ticker Strip */}
@@ -169,7 +173,7 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 font-mono text-xs font-bold text-slate-800 shadow-sm mb-4">
               <Building2 size={14} className="text-govblue" />
-              BRUHAT BENGALURU MAHANAGARA PALIKE &bull; 198 WARDS
+              GREATER BENGALURU AUTHORITY (GBA) &bull; 5 CITY CORPORATIONS
             </div>
 
             <h1 className="heading text-3xl sm:text-5xl lg:text-6xl leading-tight font-extrabold text-slate-900">
@@ -181,7 +185,7 @@ export default function Home() {
             </p>
 
             <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
-              Official public gateway for reporting road hazards, water fractures, garbage overflow, and public safety issues. Every report receives an official tracking docket, automated AI department routing, and statutory SLA enforcement.
+              Official public gateway for reporting road hazards, water fractures, garbage overflow, and public safety issues. Connected directly to Bengaluru's GIS infrastructure matrix, autonomous AI departmental triage, and statutory SLA enforcement.
             </p>
 
             {/* Official Call to Actions */}
@@ -221,21 +225,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3D WebGL City Topography Stage */}
-      <section className="shell my-8">
-        <div className="mb-4">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
-            <MapPin size={14} /> Interactive 3D Municipal Terrain
+      {/* Flagship Geospatial Digital-Twin Infrastructure Matrix */}
+      <section className="shell my-12">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+              <Globe size={14} /> Real Geospatial Digital-Twin Layer Stack
+            </div>
+            <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
+              Bengaluru Urban Infrastructure Matrix &bull; Live 3D Twin
+            </h2>
+            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
+              Geospatially projected across Greater Bengaluru. Inspect real-coordinate Namma Metro corridors, Rajakaluve stormwater drainage channels, lakes, arterial road traffic states, and live grievance dockets with real-time flood simulation.
+            </p>
           </div>
-          <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
-            3D Bengaluru Urban Infrastructure Matrix
-          </h2>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Live WebGL representation of Bengaluru wards. Observe moving BBMP roadwork squads and hover survey drones in real time. Rotate camera or switch presets to inspect active municipal dockets.
-          </p>
+
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-300 self-start sm:self-auto">
+            <button
+              onClick={() => setDigitalTwinMode('geospatial')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                digitalTwinMode === 'geospatial'
+                  ? 'bg-civic text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white'
+              }`}
+            >
+              <Layers size={13} /> Geospatial Twin (WGS84)
+            </button>
+            <button
+              onClick={() => setDigitalTwinMode('wardSimulation')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                digitalTwinMode === 'wardSimulation'
+                  ? 'bg-civic text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white'
+              }`}
+            >
+              <Building2 size={13} /> Micro-Ward Topography
+            </button>
+          </div>
         </div>
 
-        <ThreeCityCanvas />
+        {digitalTwinMode === 'geospatial' ? (
+          <BengaluruDigitalTwin issues={issues} />
+        ) : (
+          <ThreeCityCanvas />
+        )}
       </section>
 
       {/* BBMP Integrated Command Center Showcase */}
@@ -285,7 +319,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NEW: Interactive 3D Municipal Machinery Exploration */}
+      {/* Interactive 3D Municipal Machinery Exploration */}
       <section className="shell my-16">
         <div className="mb-4">
           <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
@@ -295,7 +329,7 @@ export default function Home() {
             BBMP High-Velocity Road Maintenance Fleet
           </h2>
           <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Interactive 3D model of modern automated equipment deployed across Bengaluru's 8 municipal zones. Inspect hydraulic patching systems and telemetry controllers.
+            Interactive 3D model of modern automated equipment deployed across Bengaluru's municipal corporations. Inspect hydraulic patching systems and telemetry controllers.
           </p>
         </div>
 
