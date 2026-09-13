@@ -1,73 +1,183 @@
-import { Award, ArrowRight, CheckCircle2, ClipboardList, LockKeyhole, Sparkles, Users } from 'lucide-react'
+import { Award, ArrowRight, CheckCircle2, ClipboardList, ShieldCheck, Trophy, Star, Medal, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import CountUp from '../components/CountUp'
-const particles = Array.from({ length: 12 }, (_, index) => index)
-export default function Leaderboard({ issues }) {
-  const reportsSubmitted = issues.filter((issue) => issue.source === 'User Report').length
-  const verificationsMade = issues.reduce((sum, issue) => sum + (issue.userVerifications || 0), 0)
-  const resolvedUserReports = issues.filter((issue) => issue.source === 'User Report' && issue.status === 'Resolved').length
-  const points = reportsSubmitted * 50 + verificationsMade * 15 + resolvedUserReports * 30
-  const badges = [
-    ['First Report', reportsSubmitted >= 1, 'Submit one local report', ClipboardList],
-    ['Neighbour Check', verificationsMade >= 2, 'Verify two visible issues', Users],
-    ['Civic Helper', points >= 100, 'Earn 100 participation points', Award],
-    ['Follow-through', resolvedUserReports >= 1, 'Complete a local demo workflow', CheckCircle2],
-  ]
-  const stats = [[ClipboardList, reportsSubmitted, 'Reports submitted'], [Users, verificationsMade, 'Verifications made'], [Sparkles, points, 'Community points']]
+import { use3DTilt } from '../hooks/use3DTilt'
+
+function MedalCard3D({ name, kannada, unlocked, desc, tier, icon: Icon }) {
+  const tilt = use3DTilt(12, 1000)
+
+  const metalColor =
+    tier === 'gold' ? 'from-amber-400 to-amber-600 text-amber-950 border-amber-400' :
+    tier === 'silver' ? 'from-slate-200 to-slate-400 text-slate-900 border-slate-300' :
+    tier === 'platinum' ? 'from-sky-300 to-blue-500 text-blue-950 border-blue-400' :
+    'from-amber-600 to-amber-800 text-amber-100 border-amber-600'
+
   return (
-    <main className="shell max-w-5xl py-12 sm:py-16">
-      <p className="section-label">Browser-based participation</p>
-      <h1 className="heading text-3xl sm:text-[32px]">Namma Civic Scoreboard</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Participation tracked in this browser. The real version would be city-wide.</p>
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        {stats.map(([Icon, value, label]) => (
-          <article className="panel p-6" key={label}>
-            <span className="feature-icon"><Icon size={20} /></span>
-            <p className="mt-5 font-display text-[40px] font-extrabold leading-none text-slate-100"><CountUp value={value} /></p>
-            <p className="mt-2 text-[13px] text-slate-400">{label}</p>
-          </article>
-        ))}
-      </section>
-      {points === 0 ? (
-        <div className="mt-5 flex flex-col items-center gap-4 rounded-xl border border-line bg-raised/40 p-8 text-center">
-          <p className="text-[13px] text-slate-400 max-w-sm">
-            File your first report to earn <span className="font-bold text-civic">30 points</span> and unlock your{' '}
-            <span className="font-bold text-slate-200">First Report</span> badge
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      style={tilt.style}
+      className={`card-3d-wrapper rounded-xl border p-5 shadow-sm transition ${
+        unlocked ? 'bg-white border-slate-300' : 'bg-slate-50 border-slate-200 opacity-60'
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        {/* 3D Medal Coin */}
+        <div className={`h-14 w-14 rounded-full bg-gradient-to-br ${metalColor} border-2 flex items-center justify-center shadow-md layer-z-2 shrink-0`}>
+          <Icon size={24} />
+        </div>
+
+        <div className="layer-z-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display font-bold text-sm text-slate-900">{name}</h3>
+            {unlocked && (
+              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded">
+                Unlocked
+              </span>
+            )}
+          </div>
+          <p className="font-kannada text-[11px] font-semibold text-slate-500">{kannada}</p>
+          <p className="text-xs text-slate-600 mt-1 leading-snug">{desc}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Leaderboard({ issues }) {
+  const reportsSubmitted = issues.filter((issue) => issue.source === 'User Report' || issue.source === 'Citizen Public Portal').length
+  const verificationsMade = issues.reduce((sum, issue) => sum + (issue.userVerifications || 0), 0)
+  const resolvedUserReports = issues.filter((issue) => (issue.source === 'User Report' || issue.source === 'Citizen Public Portal') && issue.status === 'Resolved').length
+  const points = reportsSubmitted * 50 + verificationsMade * 15 + resolvedUserReports * 30
+
+  const rankTier =
+    points >= 150 ? 'BBMP Civic Sentinel (ನಾಗರಿಕ ಕಾವಲುಗಾರ)' :
+    points >= 60 ? 'BBMP Ward Guardian (ವಾರ್ಡ್ ರಕ್ಷಕ)' :
+    points >= 15 ? 'Citizen Scout (ನಾಗರಿಕ ಸ್ಕೌಟ್)' :
+    'Neighbourhood Watch (ಪ್ರಾರಂಭಿಕ ಸದಸ್ಯ)'
+
+  const badges = [
+    { name: 'First Civic Report', kannada: 'ಪ್ರಥಮ ದೂರು ಸಲ್ಲಿಕೆ', unlocked: reportsSubmitted >= 1, desc: 'Register 1 verified defect docket', icon: ClipboardList, tier: 'bronze' },
+    { name: 'Community Validator', kannada: 'ವಾರ್ಡ್ ಪರಿಶೀಲಕ', unlocked: verificationsMade >= 2, desc: 'Verify 2 active community hazard dockets', icon: Users, tier: 'silver' },
+    { name: 'Civic Champion', kannada: 'ನಾಗರಿಕ ಸಾಧಕ', unlocked: points >= 100, desc: 'Earn 100 municipal civic merit points', icon: Award, tier: 'gold' },
+    { name: 'Statutory Resolution Sign-off', kannada: 'ಕಾಮಗಾರಿ ದೃಢೀಕರಣ', unlocked: resolvedUserReports >= 1, desc: 'Verify before/after road repair completion', icon: CheckCircle2, tier: 'platinum' },
+  ]
+
+  return (
+    <main className="shell py-10 sm:py-14">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 border-b border-slate-200">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 font-mono text-xs font-bold text-slate-800 shadow-sm mb-3">
+            <Trophy size={14} className="text-amber-600" />
+            BBMP CITIZEN RECOGNITION &bull; PUBLIC ENGAGEMENT
+          </div>
+          <h1 className="heading text-3xl sm:text-4xl text-slate-900 font-black">
+            Citizen Civic Champions &amp; Ward Recognition
+          </h1>
+          <p className="font-kannada text-sm font-semibold text-slate-700 mt-1">
+            ನಾಗರಿಕ ಶ್ರೇಯಾಂಕ ಮತ್ತು ಸಾರ್ವಜನಿಕ ಸಹಭಾಗಿತ್ವ ಗೌರವ
           </p>
-          <Link to="/report" className="btn-primary !px-4 !py-2.5 text-sm">
-            Report an Issue <ArrowRight size={15} />
+          <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+            Bruhat Bengaluru Mahanagara Palike rewards citizens who actively document infrastructure defects and verify contractor road repairs. Earn merit points to unlock civic achievement seals.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 self-start sm:self-auto text-right">
+          <span className="font-mono text-[10px] text-amber-900 uppercase font-bold tracking-wider block">Official Rank Tier</span>
+          <span className="font-display text-sm font-black text-slate-900 flex items-center gap-1.5 justify-end mt-1">
+            <Star size={16} className="text-amber-600 fill-amber-600" /> {rankTier}
+          </span>
+        </div>
+      </div>
+
+      {/* 3 Metric Summary Cards */}
+      <div className="grid sm:grid-cols-3 gap-4 my-8">
+        <div className="p-5 rounded-xl border border-slate-300 bg-white shadow-sm">
+          <span className="font-mono text-[11px] font-bold text-slate-500 uppercase block">Reports Filed</span>
+          <div className="font-display text-3xl font-black text-slate-900 mt-1">
+            <CountUp value={reportsSubmitted} />
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Official Dockets Logged</span>
+        </div>
+
+        <div className="p-5 rounded-xl border border-slate-300 bg-white shadow-sm">
+          <span className="font-mono text-[11px] font-bold text-slate-500 uppercase block">Ground Verifications</span>
+          <div className="font-display text-3xl font-black text-emerald-700 mt-1">
+            <CountUp value={verificationsMade} />
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Community Endorsements</span>
+        </div>
+
+        <div className="p-5 rounded-xl border border-slate-300 bg-white shadow-sm">
+          <span className="font-mono text-[11px] font-bold text-slate-500 uppercase block">Civic Merit Points</span>
+          <div className="font-display text-3xl font-black text-govblue mt-1">
+            <CountUp value={points} />
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Total Score Accumulated</span>
+        </div>
+      </div>
+
+      {/* 3D Metallic Medal Showcase */}
+      <div className="my-8">
+        <h2 className="heading text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <Medal size={20} className="text-govblue" /> Statutory Civic Achievement Seals
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {badges.map((b) => (
+            <MedalCard3D key={b.name} {...b} />
+          ))}
+        </div>
+      </div>
+
+      {/* Point Rubric Section */}
+      <div className="rounded-xl border border-slate-300 bg-white p-6 sm:p-8 shadow-sm my-8">
+        <h2 className="heading text-lg font-bold text-slate-900 mb-2">
+          BBMP Civic Merit Allocation Schedule
+        </h2>
+        <p className="text-xs text-slate-600 mb-6">
+          Merit scores are audited according to citizen participation guidelines.
+        </p>
+
+        <div className="space-y-3 text-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span className="font-medium text-slate-800">
+              Submit photo-verified road or civic infrastructure defect
+            </span>
+            <span className="font-mono font-bold text-govblue bg-blue-50 border border-blue-200 px-2.5 py-1 rounded">
+              +50 Points
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span className="font-medium text-slate-800">
+              Endorse and verify an active neighbourhood hazard docket
+            </span>
+            <span className="font-mono font-bold text-govblue bg-blue-50 border border-blue-200 px-2.5 py-1 rounded">
+              +15 Points
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+            <span className="font-medium text-slate-800">
+              Inspect &amp; sign off completed on-ground contractor repair
+            </span>
+            <span className="font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded">
+              +30 Points
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between items-center">
+          <span className="text-xs text-slate-500 font-mono">
+            BBMP Citizen Redressal Rules 2026 &bull; Public Service Guarantee
+          </span>
+          <Link to="/report" className="btn-primary text-xs font-bold">
+            File a Grievance Now &rarr;
           </Link>
         </div>
-      ) : null}
-      <section className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
-        <article className="panel p-6">
-          <p className="section-label">Points explained</p>
-          <h2 className="heading text-xl">A simple participation model</h2>
-          <div className="mt-5 divide-y divide-line border-y border-line">
-            <p className="points-row flex items-center justify-between py-4 text-sm text-slate-300"><span>Submit a report</span><b className="data-mono text-civic">+50</b></p>
-            <p className="points-row flex items-center justify-between py-4 text-sm text-slate-300"><span>Verify an issue</span><b className="data-mono text-civic">+15</b></p>
-            <p className="points-row flex items-center justify-between py-4 text-sm text-slate-300"><span>Mark a user report resolved in demo</span><b className="data-mono text-civic">+30</b></p>
-          </div>
-          <Link className="btn-primary mt-6 w-full" to="/report">Report an Issue</Link>
-        </article>
-        <article className="panel p-6">
-          <p className="section-label">Demo badges</p>
-          <h2 className="heading text-xl">Progress in this browser</h2>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {badges.map(([title, earned, rule, Icon]) => (
-              <div className={`badge-card relative rounded-xl border p-4 ${earned ? 'badge-unlocked border-civic/50 bg-civic/[.05]' : 'badge-locked border-line bg-raised/40 opacity-65'}`} key={title}>
-                {earned ? (
-                  <>{particles.map((particle) => <span className="badge-confetti" style={{ '--particle': particle }} key={particle} />)}<Icon className="text-civic" size={22} /></>
-                ) : (
-                  <LockKeyhole className="text-slate-500" size={22} />
-                )}
-                <p className="mt-4 font-display text-sm font-bold text-slate-100">{title}</p>
-                <p className="mt-1 text-[11px] leading-4 text-slate-400">{earned ? 'Unlocked in this browser' : rule}</p>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
+      </div>
     </main>
   )
 }

@@ -1,6 +1,148 @@
-import { CheckCircle2, MapPin, Share2, Users } from 'lucide-react'
-import { formatDate, statusStyles } from '../utils/issues'
-function bannerClass(category = '') { const key = category.toLowerCase(); if (key.includes('pothole') || key.includes('road')) return 'category-road'; if (key.includes('drain')) return 'category-drain'; if (key.includes('water') || key.includes('leak')) return 'category-water'; if (key.includes('garbage') || key.includes('waste')) return 'category-waste'; if (key.includes('light')) return 'category-light'; return 'category-infra' }
-function priorityClass(severity) { return severity === 'Critical' ? 'border-l-danger' : severity === 'High' ? 'border-l-amber' : severity === 'Medium' ? 'border-l-blue-500' : 'border-l-civic' }
-export default function IssueCard({ issue, onVerify, onView, onShare, compact = false, animationIndex = 0 }) { const area = issue.area || issue.location.split(',').at(-1)?.trim() || issue.location; const source = issue.source || 'Demo Seed'; const scoreColor = issue.urgencyScore >= 85 ? 'text-danger' : issue.urgencyScore >= 70 ? 'text-amber' : 'text-civic'; const verify = (event) => { event.currentTarget.classList.remove('ripple-active'); requestAnimationFrame(() => event.currentTarget.classList.add('ripple-active')); onVerify(issue.id) }; return <article className={`issue-card dashboard-card-enter panel overflow-hidden border-l-[3px] ${priorityClass(issue.severity)}`} style={{ animationDelay: `${animationIndex * 80}ms` }}><div className={`category-banner ${bannerClass(issue.category)}`}><div className="absolute right-3 top-2 z-10 flex gap-2"><span className={`badge border-0 ${issue.severity === 'Critical' ? 'status-critical bg-danger text-white' : issue.severity === 'High' ? 'bg-amber text-ink' : issue.severity === 'Medium' ? 'bg-blue-500 text-white' : 'bg-civic text-ink'}`}>{issue.severity}</span><span className={`badge ${statusStyles[issue.status]}`}>{issue.status}</span></div></div><div className="relative p-4">{onShare && <button onClick={() => onShare(issue)} className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 hover:bg-raised hover:text-civic" aria-label="Share this report"><Share2 size={16} /></button>}<p className="data-mono text-[11px] font-semibold tracking-wide text-slate-400">{issue.id}</p><h3 className="mt-1 line-clamp-2 font-display text-[15px] font-bold leading-5 text-slate-100">{issue.title}</h3><span className="mt-3 inline-flex rounded-full bg-raised px-2.5 py-1 text-xs text-slate-300">{issue.category}</span><p className="mt-3 flex items-start gap-1.5 text-[13px] text-slate-400"><MapPin className="mt-0.5 shrink-0 text-civic" size={14} />{area}</p>{!compact && <div className="mt-4"><div className="mb-2 flex items-center justify-between"><span className="text-[11px] text-slate-400">Urgency score</span><span className={`urgency-score data-mono text-[13px] font-bold ${scoreColor}`}>{issue.urgencyScore}/100</span></div><div className="h-1 overflow-hidden rounded-full bg-raised"><div className="urgency-fill h-full rounded-full" style={{ width: `${issue.urgencyScore}%` }} /></div></div>}<div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-[12px] text-slate-400"><span className="flex items-center gap-1"><Users size={13} />{issue.verifications}</span><span>{formatDate(issue.createdAt)}</span><span className="rounded-full bg-raised px-2 py-0.5">{source}</span></div>{!compact && <div className="mt-4 grid grid-cols-2 gap-2"><button aria-label={`Verify ${issue.title}`} onClick={verify} className="verify-button btn-secondary !px-2 !py-2 text-[13px]"><CheckCircle2 size={15} />Verify</button><button onClick={() => onView(issue.id)} className="btn-primary !px-2 !py-2 text-[13px]">View details</button></div>}</div></article> }
+import { CheckCircle2, MapPin, Share2, Users, ArrowUpRight, ShieldAlert, FileText } from 'lucide-react'
+import { formatDate } from '../utils/issues'
+import { use3DTilt } from '../hooks/use3DTilt'
 
+function statusBadgeClass(status) {
+  switch (status) {
+    case 'Resolved':
+      return 'bg-emerald-100 text-emerald-900 border-emerald-300'
+    case 'In Progress':
+      return 'bg-blue-100 text-blue-900 border-blue-300'
+    case 'Verified':
+      return 'bg-indigo-100 text-indigo-900 border-indigo-300'
+    default:
+      return 'bg-amber-100 text-amber-900 border-amber-300'
+  }
+}
+
+function priorityBadgeClass(severity) {
+  switch (severity) {
+    case 'Critical':
+      return 'bg-rose-100 text-rose-900 border-rose-300 font-bold'
+    case 'High':
+      return 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+    default:
+      return 'bg-slate-100 text-slate-800 border-slate-300'
+  }
+}
+
+export default function IssueCard({ issue, onVerify, onView, onShare, compact = false, animationIndex = 0 }) {
+  const area = issue.area || issue.location.split(',').at(-1)?.trim() || issue.location
+  const tilt = use3DTilt(8, 1000)
+
+  const verify = (event) => {
+    event.stopPropagation()
+    onVerify(issue.id)
+  }
+
+  return (
+    <article
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      style={tilt.style}
+      className="card-3d-wrapper rounded-xl border border-slate-300 bg-white shadow-sm overflow-hidden flex flex-col justify-between hover:border-slate-400"
+    >
+      <div>
+        {/* Official Header Strip */}
+        <div className="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between layer-z-1">
+          <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-amber-400">
+            <FileText size={13} />
+            <span>{issue.id}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${priorityBadgeClass(issue.severity)}`}>
+              {issue.severity}
+            </span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${statusBadgeClass(issue.status)}`}>
+              {issue.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        <div className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-2 layer-z-2">
+            <h3
+              onClick={() => onView(issue.id)}
+              className="font-display font-bold text-base text-slate-900 leading-snug line-clamp-2 hover:text-govblue cursor-pointer transition"
+            >
+              {issue.title}
+            </h3>
+            {onShare && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onShare(issue); }}
+                className="shrink-0 p-1 text-slate-400 hover:text-slate-800 rounded hover:bg-slate-100 transition"
+                title="Share official grievance docket"
+                aria-label="Share official grievance docket"
+              >
+                <Share2 size={15} />
+              </button>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex rounded bg-slate-100 border border-slate-200 px-2 py-0.5 font-medium text-slate-700">
+              {issue.category}
+            </span>
+            <span className="flex items-center gap-1 text-slate-600">
+              <MapPin size={13} className="text-govblue shrink-0" />
+              <span className="truncate max-w-[170px] font-medium">{area}</span>
+            </span>
+          </div>
+
+          {/* Department & Urgency SLA Bar */}
+          {!compact && (
+            <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-2.5 layer-z-1">
+              <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                <span className="font-bold text-slate-600 uppercase">Urgency Score</span>
+                <span className="font-bold text-slate-900">{issue.urgencyScore} / 100</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${
+                    issue.urgencyScore >= 80 ? 'bg-rose-600' : issue.urgencyScore >= 60 ? 'bg-amber-500' : 'bg-emerald-600'
+                  }`}
+                  style={{ width: `${issue.urgencyScore}%` }}
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+                <span>Dept: <strong className="text-slate-700">{issue.department || 'BBMP'}</strong></span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer Details & Verification Action */}
+      <div className="border-t border-slate-200 bg-slate-50/80 p-4 pt-3 layer-z-1">
+        <div className="flex items-center justify-between text-xs text-slate-600 mb-3 font-mono">
+          <span className="flex items-center gap-1.5 font-bold text-emerald-800">
+            <Users size={13} className="text-emerald-700" />
+            <span>{issue.verifications} Verifications</span>
+          </span>
+          <span className="text-[11px] text-slate-500">
+            {formatDate(issue.createdAt)}
+          </span>
+        </div>
+
+        {!compact && (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={verify}
+              className="btn-secondary text-xs !py-2 flex items-center justify-center gap-1 font-bold"
+            >
+              <CheckCircle2 size={14} className="text-emerald-700" /> Verify
+            </button>
+            <button
+              onClick={() => onView(issue.id)}
+              className="btn-primary text-xs !py-2 flex items-center justify-center gap-1 font-bold"
+            >
+              Inspect <ArrowUpRight size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}

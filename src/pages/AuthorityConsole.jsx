@@ -1,9 +1,244 @@
-import { CheckCheck, ClipboardList, Flag, Search, ShieldCheck, Tag, X } from 'lucide-react'
+import { CheckCheck, ClipboardList, Search, ShieldAlert, Building2, Phone, ArrowUpRight, FileText, CheckCircle2, Flame, Wrench } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { categories, severityStyles, statuses, statusStyles } from '../utils/issues'
+import { categories, statuses } from '../utils/issues'
+import { use3DTilt } from '../hooks/use3DTilt'
 
-function categoryMeta(category = '') { const value = category.toLowerCase(); if (value.includes('pothole') || value.includes('road')) return ['PH', '#F5A623']; if (value.includes('drain')) return ['DR', '#00C9A7']; if (value.includes('water') || value.includes('leak')) return ['WL', '#38BDF8']; if (value.includes('garbage') || value.includes('waste')) return ['GW', '#A3B65C']; if (value.includes('light')) return ['SL', '#F5A623']; return ['PI', '#8A99B3'] }
-function priorityColor(severity) { return severity === 'Critical' ? '#E5534B' : severity === 'High' ? '#F5A623' : severity === 'Medium' ? '#3B82F6' : '#00C9A7' }
-export default function AuthorityConsole({ issues, onUpdate }) { const [filters, setFilters] = useState({ severity: 'All', category: 'All', status: 'All' }); const [notes, setNotes] = useState({}); const filtered = useMemo(() => issues.filter((issue) => (filters.severity === 'All' || issue.severity === filters.severity) && (filters.category === 'All' || issue.category === filters.category) && (filters.status === 'All' || issue.status === filters.status)).sort((a, b) => b.urgencyScore - a.urgencyScore), [issues, filters]); const criticalCount = issues.filter((issue) => issue.severity === 'Critical' && issue.status !== 'Resolved').length; const menu = (key, values) => <select aria-label={`Filter by ${key}`} className="filter-select" value={filters[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}><option>All</option>{values.map((value) => <option key={value}>{value}</option>)}</select>; const addNote = (issue) => { const note = notes[issue.id]?.trim(); if (!note) return; onUpdate(issue.id, { adminNote: note }); setNotes({ ...notes, [issue.id]: '' }) }; return <main className="shell py-12 sm:py-16"><div className="flex flex-wrap items-start justify-between gap-5"><div><p className="section-label"><ShieldCheck size={14} />Local demo workflow</p><h1 className="heading text-3xl sm:text-[32px]">Authority Console Prototype</h1><p className="muted mt-2 max-w-2xl">Simulating how a ward office would triage, assign and resolve incoming reports.</p></div><aside className="sticky top-20 flex items-center gap-2 rounded-xl border border-amber/35 bg-amber/10 px-4 py-3"><span className="critical-queue-dot h-2 w-2 rounded-full bg-danger" /><div><p className="data-mono text-[11px] font-bold tracking-wide text-amber">DEMO PRIORITY QUEUE</p><p className="mt-1 text-sm font-semibold text-amber">{criticalCount} critical report{criticalCount === 1 ? '' : 's'} open</p></div></aside></div><section className="panel mt-8 flex flex-wrap gap-2 p-3"><Search className="m-2 text-civic" size={17} />{menu('severity', ['Low', 'Medium', 'High', 'Critical'])}{menu('category', categories)}{menu('status', statuses)}<button onClick={() => setFilters({ severity: 'All', category: 'All', status: 'All' })} className="ml-auto inline-flex items-center gap-1 px-2 text-xs font-semibold text-slate-400 hover:text-white"><X size={14} />Reset</button></section><div className="mt-5 overflow-hidden rounded-xl border border-line bg-panel"><div className="thin-scrollbar overflow-x-auto"><table className="w-full min-w-[960px] text-left"><thead className="sticky top-0 z-10 border-b border-line bg-raised font-mono text-[11px] uppercase tracking-[.1em] text-slate-400"><tr><th className="px-5 py-4">Report &amp; AI suggestion</th><th className="px-4 py-4">Priority</th><th className="px-4 py-4">Demo status</th><th className="px-4 py-4">Demo actions</th></tr></thead><tbody>{filtered.map((issue) => { const [mono, categoryColor] = categoryMeta(issue.category); const urgencyColor = priorityColor(issue.severity); return <tr className="authority-row authority-row-enter border-b border-line align-top last:border-0" key={issue.id}><td className="max-w-md px-5 py-5"><div className="flex gap-3"><span className="data-mono grid h-10 w-10 shrink-0 place-items-center rounded-full border text-xs font-bold" style={{ color: categoryColor, borderColor: `${categoryColor}99`, backgroundColor: `${categoryColor}33` }}>{mono}</span><div><p className="font-display text-sm font-bold text-slate-100">{issue.title}</p><p className="mt-1 text-[12px] text-civic">Suggests: {issue.department}</p><p className="mt-2 line-clamp-1 text-xs italic leading-relaxed text-slate-400">{issue.ai.authorityNote}</p>{issue.adminNote && <p className="mt-2 rounded bg-civic/10 px-2 py-1 text-xs text-civic">Local note: {issue.adminNote}</p>}</div></div></td><td className="px-4 py-5"><span className={`badge ${severityStyles[issue.severity]}`}>{issue.severity}</span><p className="data-mono mt-3 text-xl font-bold" style={{ color: urgencyColor }}>{issue.urgencyScore}<span className="text-xs text-slate-500">/100</span></p><div className="mt-2 h-[3px] w-20 overflow-hidden rounded-full bg-raised"><div className="urgency-fill h-full rounded-full" style={{ width: `${issue.urgencyScore}%` }} /></div></td><td className="px-4 py-5"><span className={`badge ${statusStyles[issue.status]}`}>{issue.status}</span><select aria-label="Set demo report status" className="filter-select mt-3 !w-36" value={issue.status} onChange={(e) => onUpdate(issue.id, { status: e.target.value })}>{statuses.map((status) => <option key={status}>{status}</option>)}</select></td><td className="px-4 py-5"><div className="flex flex-wrap gap-2"><button onClick={() => onUpdate(issue.id, { status: 'Resolved' })} className="btn-secondary !px-2.5 !py-2 text-xs"><CheckCheck size={14} />Mark resolved</button><button onClick={() => onUpdate(issue.id, { isDuplicate: !issue.isDuplicate })} className={`rounded-lg border px-2.5 py-2 text-xs font-semibold transition ${issue.isDuplicate ? 'border-danger bg-danger/10 text-danger' : 'border-danger/60 text-danger hover:bg-danger/10'}`}><Tag size={14} className="mr-1 inline" />{issue.isDuplicate ? 'Unmark duplicate' : 'Mark duplicate'}</button></div><div className="mt-3 flex"><input className="input !w-40 !rounded-r-none !py-2 text-xs" value={notes[issue.id] || ''} onChange={(e) => setNotes({ ...notes, [issue.id]: e.target.value })} placeholder="Add local area note…" /><button onClick={() => addNote(issue)} className="rounded-r-lg border border-l-0 border-line px-2 text-amber hover:bg-amber/10" aria-label="Save note"><ClipboardList size={15} /></button></div></td></tr> })}</tbody></table></div>{!filtered.length && <div className="p-12 text-center text-slate-400">No local reports match the selected filters.</div>}</div></main> }
+function KpiCard3D({ label, value, subtext, alert = false, icon: Icon }) {
+  const tilt = use3DTilt(6, 800)
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      style={tilt.style}
+      className={`card-3d-wrapper rounded-xl border p-5 shadow-sm bg-white ${
+        alert ? 'border-rose-300' : 'border-slate-300'
+      }`}
+    >
+      <div className="flex items-center justify-between text-slate-500 mb-1">
+        <span className="font-mono text-[11px] uppercase font-bold tracking-wider">{label}</span>
+        {Icon && <Icon size={16} className={alert ? 'text-rose-600' : 'text-slate-400'} />}
+      </div>
+      <div className={`font-display text-2xl sm:text-3xl font-black ${alert ? 'text-rose-700' : 'text-slate-900'} layer-z-2 mt-1`}>
+        {value}
+      </div>
+      <span className="text-[11px] text-slate-500 font-medium block mt-1">{subtext}</span>
+    </div>
+  )
+}
 
+export default function AuthorityConsole({ issues, onUpdate }) {
+  const [filters, setFilters] = useState({ severity: 'All', category: 'All', status: 'All' })
+  const [search, setSearch] = useState('')
+  const [notes, setNotes] = useState({})
 
+  const criticalIssues = useMemo(() => issues.filter(i => i.severity === 'Critical' && i.status !== 'Resolved'), [issues])
+  const assignedCount = useMemo(() => issues.filter(i => i.status === 'Assigned' || i.status === 'In Progress').length, [issues])
+  const resolvedCount = useMemo(() => issues.filter(i => i.status === 'Resolved').length, [issues])
+
+  const filtered = useMemo(() =>
+    issues.filter((issue) => {
+      const matchesSearch = `${issue.title} ${issue.location} ${issue.department} ${issue.id}`.toLowerCase().includes(search.toLowerCase())
+      const matchesSev = filters.severity === 'All' || issue.severity === filters.severity
+      const matchesCat = filters.category === 'All' || issue.category === filters.category
+      const matchesStat = filters.status === 'All' || issue.status === filters.status
+      return matchesSearch && matchesSev && matchesCat && matchesStat
+    }).sort((a, b) => b.urgencyScore - a.urgencyScore),
+    [issues, filters, search]
+  )
+
+  const handleQuickDispatch = (issueId) => {
+    onUpdate(issueId, { status: 'In Progress' })
+  }
+
+  const handleQuickResolve = (issueId) => {
+    onUpdate(issueId, { status: 'Resolved' })
+  }
+
+  return (
+    <main className="shell py-10 sm:py-14">
+      {/* Official Operations Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-slate-200">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 font-mono text-xs font-bold text-slate-800 shadow-sm mb-3">
+            <Building2 size={14} className="text-govblue" />
+            BBMP ASSISTANT EXECUTIVE ENGINEER (AEE) DISPATCH CONSOLE
+          </div>
+          <h1 className="heading text-3xl sm:text-4xl text-slate-900 font-black">
+            Municipal Grievance Operations Terminal
+          </h1>
+          <p className="font-kannada text-sm font-semibold text-slate-700 mt-1">
+            ಬಿಬಿಎಂಪಿ ಸಹಾಯಕ ಕಾರ್ಯಪಾಲಕ ಎಂಜಿನಿಯರ್ ಕಾರ್ಯಾಚರಣೆ ನಿಯಂತ್ರಣ ಕೊಠಡಿ
+          </p>
+          <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+            Statutory municipal workflow console for Bruhat Bengaluru Mahanagara Palike and BWSSB engineering divisions. Assign field repair squads, monitor resolution SLAs, and record completion certificates.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 font-mono text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3.5 py-2 rounded-lg">
+          <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+          <span>BBMP Zonal Node &bull; 198 Wards Synced</span>
+        </div>
+      </div>
+
+      {/* 4 Operations KPI Pods */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 my-8">
+        <KpiCard3D
+          label="Critical Safety Queue"
+          value={criticalIssues.length}
+          subtext="Urgent 24h SLA Breaches"
+          alert={true}
+          icon={Flame}
+        />
+        <KpiCard3D
+          label="Active Field Squads"
+          value={assignedCount}
+          subtext="Contractors On-Ground"
+          icon={Wrench}
+        />
+        <KpiCard3D
+          label="Certified Restored"
+          value={resolvedCount}
+          subtext="Inspection Closed (7 Days)"
+          icon={CheckCheck}
+        />
+        <KpiCard3D
+          label="Total Municipal Load"
+          value={issues.length}
+          subtext="Registered Inquiries"
+          icon={FileText}
+        />
+      </div>
+
+      {/* Urgent Hazard Priority Banner */}
+      {criticalIssues.length > 0 && (
+        <div className="mb-8 rounded-xl border-2 border-rose-300 bg-rose-50 p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <ShieldAlert size={24} className="text-rose-700 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-display font-bold text-base text-rose-950">
+                  {criticalIssues.length} High-Risk Hazardous Conditions Require Immediate Executive Work Order
+                </h3>
+                <p className="text-xs text-rose-800 mt-0.5">
+                  High-traffic cratering or water pipeline fractures flagged by automated AI triage with scores &ge; 85/100.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, severity: 'Critical' }))}
+              className="btn-primary !bg-rose-700 hover:!bg-rose-800 text-xs font-bold shrink-0"
+            >
+              Filter Critical Queue &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm mb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row items-stretch gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by Docket ID, location, department, or street name…"
+              className="input pl-10 text-xs font-sans"
+            />
+          </div>
+
+          <select
+            value={filters.severity}
+            onChange={(e) => setFilters(prev => ({ ...prev, severity: e.target.value }))}
+            className="input sm:w-44 text-xs font-semibold text-slate-700"
+          >
+            <option value="All">All Priority Levels</option>
+            <option value="Critical">Critical Priority</option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+          </select>
+
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+            className="input sm:w-44 text-xs font-semibold text-slate-700"
+          >
+            <option value="All">All Milestones</option>
+            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Triage Matrix Table */}
+      <div className="rounded-xl border border-slate-300 bg-white overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-100 text-slate-700 font-mono uppercase text-[11px] border-b border-slate-200">
+              <tr>
+                <th className="py-3.5 px-4 font-bold">Docket ID</th>
+                <th className="py-3.5 px-4 font-bold">Grievance &amp; Location</th>
+                <th className="py-3.5 px-4 font-bold">Urgency Index</th>
+                <th className="py-3.5 px-4 font-bold">Assigned Division</th>
+                <th className="py-3.5 px-4 font-bold">Municipal Status</th>
+                <th className="py-3.5 px-4 font-bold text-right">Work Order Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {filtered.map((issue) => (
+                <tr key={issue.id} className="hover:bg-slate-50 transition">
+                  <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                    {issue.id}
+                  </td>
+                  <td className="py-3.5 px-4 max-w-xs">
+                    <p className="font-display font-bold text-slate-900 text-sm line-clamp-1">{issue.title}</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{issue.location}</p>
+                  </td>
+                  <td className="py-3.5 px-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-900">{issue.urgencyScore}/100</span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                        issue.severity === 'Critical' ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold' :
+                        issue.severity === 'High' ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold' :
+                        'bg-slate-100 text-slate-700 border-slate-300'
+                      }`}>
+                        {issue.severity}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
+                    {issue.department || 'BBMP Engineering'}
+                  </td>
+                  <td className="py-3.5 px-4 whitespace-nowrap">
+                    <select
+                      value={issue.status}
+                      onChange={(e) => onUpdate(issue.id, { status: e.target.value })}
+                      className="input !py-1 !px-2 text-xs font-bold"
+                    >
+                      {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </td>
+                  <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    {issue.status !== 'Resolved' ? (
+                      <button
+                        onClick={() => handleQuickDispatch(issue.id)}
+                        className="btn-secondary !py-1 !px-2.5 text-xs font-bold text-govblue border-govblue/40"
+                      >
+                        Dispatch Crew
+                      </button>
+                    ) : (
+                      <span className="text-emerald-800 font-bold text-xs flex items-center justify-end gap-1 font-mono">
+                        <CheckCircle2 size={13} /> Certified Closed
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  )
+}

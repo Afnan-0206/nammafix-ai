@@ -1,4 +1,4 @@
-import { demoIssues } from '../data/demoIssues'
+import { initialIssues } from '../data/initialIssues'
 
 const STORAGE_KEY = 'nammafix-issues-v1'
 
@@ -23,9 +23,9 @@ export const statusStyles = {
 export function loadIssues() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? JSON.parse(saved) : demoIssues
+    return saved ? JSON.parse(saved) : initialIssues
   } catch {
-    return demoIssues
+    return initialIssues
   }
 }
 
@@ -44,7 +44,7 @@ const wordsFrom = (value = '') => new Set(
 
 const sharedWordCount = (first, second) => [...first].filter((word) => second.has(word)).length
 
-/** Lightweight, transparent duplicate matching for this local MVP. */
+/** Lightweight, transparent duplicate matching for local storage. */
 export function findPossibleDuplicates(candidate, issues) {
   const candidatePlace = wordsFrom(`${candidate.area || ''} ${candidate.location || ''}`)
   const candidateTitle = wordsFrom(candidate.title)
