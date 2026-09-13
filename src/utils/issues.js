@@ -1,6 +1,6 @@
 import { initialIssues } from '../data/initialIssues'
 
-const STORAGE_KEY = 'nammafix-issues-v1'
+const STORAGE_KEY = 'nammafix-issues-v2'
 
 export const statuses = ['Reported', 'Verified', 'Assigned', 'In Progress', 'Resolved']
 export const categories = ['Pothole / Road Damage', 'Garbage / Waste', 'Broken Streetlight', 'Water Leakage', 'Drainage Issue', 'Public Infrastructure Damage', 'Other']
@@ -23,7 +23,16 @@ export const statusStyles = {
 export function loadIssues() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? JSON.parse(saved) : initialIssues
+    if (!saved) return initialIssues
+    const parsed = JSON.parse(saved)
+    // Auto-upgrade legacy SVG images to real photographic evidence
+    return parsed.map((issue) => {
+      if (issue.image && issue.image.startsWith('data:image/svg')) {
+        const matching = initialIssues.find((init) => init.id === issue.id)
+        if (matching) return { ...issue, image: matching.image }
+      }
+      return issue
+    })
   } catch {
     return initialIssues
   }

@@ -60,6 +60,25 @@ export default function IssueCard({ issue, onVerify, onView, onShare, compact = 
           </div>
         </div>
 
+        {/* Real Civic Evidence Photograph */}
+        {issue.image && (
+          <div
+            className="relative h-40 w-full bg-slate-900 overflow-hidden cursor-pointer group"
+            onClick={() => onView(issue.id)}
+          >
+            <img
+              src={issue.image}
+              alt={issue.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-slate-900/90 border border-emerald-500/40 text-[9px] font-mono font-semibold text-emerald-300 flex items-center gap-1.5 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+              AUTHENTIC BBMP FIELD EVIDENCE
+            </div>
+          </div>
+        )}
+
         {/* Content Body */}
         <div className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-2 layer-z-2">
