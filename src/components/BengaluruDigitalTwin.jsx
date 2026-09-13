@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   Building2, MapPin, Search, Compass, Sun, Moon, Layers,
   Navigation, Eye, X, Check, Droplets, Trees, Train, Car,
-  ShieldAlert, ExternalLink, Globe, Sliders, ChevronRight, CornerDownRight
+  ShieldAlert, ExternalLink, Globe, Sliders, ChevronRight, CornerDownRight, Satellite
 } from 'lucide-react'
 
 // Authoritative Landmark Nodes positioned across the 3D aerial cityscape
@@ -290,13 +290,14 @@ const CITY_VIEWS = [
 ]
 
 export default function BengaluruDigitalTwin() {
-  const [selectedLandmark, setSelectedLandmark] = useState(LANDMARKS[0]) // Default UB City as in screenshot
+  const [selectedLandmark, setSelectedLandmark] = useState(LANDMARKS[0]) // Default UB City
+  const [viewEngine, setViewEngine] = useState('matrix3d') // 'matrix3d' | 'google3d'
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [activeView, setActiveView] = useState('overview')
   const [isDaylight, setIsDaylight] = useState(true)
 
-  // Zoom & Pan state
+  // Zoom & Pan state for 3D aerial canvas
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const isDraggingRef = useRef(false)
@@ -326,13 +327,14 @@ export default function BengaluruDigitalTwin() {
 
   // Mouse pan handlers
   const onMouseDown = (e) => {
-    if (e.target.closest('button, input, a, .interactive-panel')) return
+    if (viewEngine !== 'matrix3d') return
+    if (e.target.closest('button, input, a, .interactive-panel, iframe')) return
     isDraggingRef.current = true
     dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
   }
 
   const onMouseMove = (e) => {
-    if (!isDraggingRef.current) return
+    if (!isDraggingRef.current || viewEngine !== 'matrix3d') return
     setPan({
       x: e.clientX - dragStartRef.current.x,
       y: e.clientY - dragStartRef.current.y,
@@ -358,7 +360,7 @@ export default function BengaluruDigitalTwin() {
     setSelectedLandmark(landmark)
     setSearchQuery('')
     setSearchFocused(false)
-    // Pan to landmark
+    if (viewEngine !== 'matrix3d') setViewEngine('matrix3d')
     setPan({
       x: (50 - landmark.leftPct) * 4,
       y: (50 - landmark.topPct) * 3,
@@ -373,9 +375,11 @@ export default function BengaluruDigitalTwin() {
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
     >
-      {/* ─── 1. Aerial 3D Canvas / Viewport Layer ─── */}
+      {/* ─── 1A. Photorealistic 3D Aerial Canvas Layer (Active when matrix3d) ─── */}
       <div
-        className="absolute inset-0 transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing origin-center"
+        className={`absolute inset-0 transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing origin-center ${
+          viewEngine === 'matrix3d' ? 'block' : 'hidden'
+        }`}
         style={{
           transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
         }}
@@ -383,10 +387,11 @@ export default function BengaluruDigitalTwin() {
         <img
           src="/bengaluru_digital_twin_view.jpg"
           alt="Bengaluru 3D Photorealistic Digital Twin Base"
+          loading="eager"
           className="w-full h-full object-cover object-center pointer-events-none filter brightness-[0.98] contrast-[1.04]"
         />
 
-        {/* Airport Flight Path Vector Animation */}
+        {/* Airport Flight Path Vector */}
         {activeLayers.roads && (
           <div className="absolute top-[12%] left-[53%] flex items-center gap-2 pointer-events-none">
             <span className="text-white text-xs font-bold font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
@@ -417,10 +422,8 @@ export default function BengaluruDigitalTwin() {
 
         {/* Clickable 3D Hotspot Markers */}
         {LANDMARKS.map((item) => {
-          // Visibility based on layer filter
           if (!activeLayers[item.category]) return null
-
-          const isSelected = selectedNodeOrActive(selectedLandmark, item)
+          const isSelected = selectedLandmark && selectedLandmark.id === item.id
 
           return (
             <div
@@ -434,12 +437,10 @@ export default function BengaluruDigitalTwin() {
                 isSelected ? 'scale-110' : 'hover:scale-105'
               }`}
             >
-              {/* Active Selection Glow Ring */}
               {isSelected && (
                 <div className="absolute -inset-2 rounded-full border-2 border-cyan-400 animate-ping pointer-events-none opacity-60" />
               )}
 
-              {/* Pin Badge with Icon & Label */}
               <div
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tracking-wide shadow-xl border transition-all ${
                   isSelected
@@ -457,10 +458,29 @@ export default function BengaluruDigitalTwin() {
         })}
       </div>
 
+      {/* ─── 1B. Live Google 3D Earth / Maps Feed Layer (Active when google3d) ─── */}
+      <div
+        className={`absolute inset-0 w-full h-full bg-slate-950 ${
+          viewEngine === 'google3d' ? 'block' : 'hidden'
+        }`}
+      >
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d58170.87027506553!2d77.62251494063115!3d12.912340508147711!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sin!4v1789308296796!5m2!1sen!2sin"
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen=""
+          loading="eager"
+          referrerPolicy="strict-origin-when-cross-origin"
+          title="Google 3D Maps Bengaluru Live Infrastructure Layer"
+          className="w-full h-full filter contrast-[1.05]"
+        />
+      </div>
+
       {/* ─── 2. Top Navigation Bar ─── */}
       <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between pointer-events-auto gap-3">
-        {/* Top-Left: Logo & Title Card */}
-        <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-700/80 px-4 py-2.5 rounded-xl shadow-lg interactive-panel backdrop-blur-md">
+        {/* Top-Left: Logo, Title & Engine Switcher */}
+        <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-700/80 px-4 py-2 rounded-xl shadow-lg interactive-panel backdrop-blur-md">
           <div className="h-9 w-9 rounded-lg bg-cyan-600 flex items-center justify-center text-white shadow-md shrink-0">
             <Building2 size={20} />
           </div>
@@ -471,6 +491,30 @@ export default function BengaluruDigitalTwin() {
             <p className="font-mono text-[10px] text-slate-400 mt-1">
               Real 3D City &bull; Real Infrastructure &bull; Smarter Cities
             </p>
+          </div>
+
+          {/* Seamless Mode Switcher Button */}
+          <div className="ml-3 pl-3 border-l border-slate-700 hidden sm:flex items-center gap-1">
+            <button
+              onClick={() => setViewEngine('matrix3d')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition flex items-center gap-1 ${
+                viewEngine === 'matrix3d'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Globe size={12} /> 3D Digital Twin
+            </button>
+            <button
+              onClick={() => setViewEngine('google3d')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition flex items-center gap-1 ${
+                viewEngine === 'google3d'
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Satellite size={12} /> Live Google 3D
+            </button>
           </div>
         </div>
 
@@ -496,7 +540,6 @@ export default function BengaluruDigitalTwin() {
             )}
           </div>
 
-          {/* Autocomplete Dropdown */}
           {searchFocused && searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
               {searchResults.map((result) => (
@@ -532,14 +575,18 @@ export default function BengaluruDigitalTwin() {
 
           <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-2 rounded-xl text-xs font-mono shadow-lg">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-emerald-400 font-bold text-[11px]">3D City Online</span>
+            <span className="text-emerald-400 font-bold text-[11px]">
+              {viewEngine === 'google3d' ? 'Live Satellite Feed' : '3D City Online'}
+            </span>
           </div>
 
-          {/* Compass Rose */}
           <div
-            onClick={() => setPan({ x: 0, y: 0 })}
+            onClick={() => {
+              setPan({ x: 0, y: 0 })
+              setZoom(1)
+            }}
             className="h-9 w-9 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-center text-rose-500 hover:text-white cursor-pointer shadow-lg transition"
-            title="Reset North Heading"
+            title="Reset North Heading & View"
           >
             <Compass size={18} className="animate-spin-slow" />
           </div>
@@ -548,7 +595,6 @@ export default function BengaluruDigitalTwin() {
 
       {/* ─── 3. Left Control Panel (Layers & City Views) ─── */}
       <div className="absolute top-20 left-4 z-30 w-56 max-h-[calc(100%-110px)] overflow-y-auto bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl p-3.5 space-y-4 interactive-panel thin-scrollbar text-xs">
-        {/* Layer Toggles Section */}
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
             <Layers size={13} className="text-cyan-400" /> Layers
@@ -599,7 +645,6 @@ export default function BengaluruDigitalTwin() {
           </div>
         </div>
 
-        {/* City View Presets Section */}
         <div className="pt-3 border-t border-slate-800">
           <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">
             <Navigation size={13} className="text-cyan-400" /> City View
@@ -608,7 +653,10 @@ export default function BengaluruDigitalTwin() {
             {CITY_VIEWS.map((view) => (
               <button
                 key={view.id}
-                onClick={() => selectView(view)}
+                onClick={() => {
+                  if (viewEngine !== 'matrix3d') setViewEngine('matrix3d')
+                  selectView(view)
+                }}
                 className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
                   activeView === view.id
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold'
@@ -626,7 +674,6 @@ export default function BengaluruDigitalTwin() {
       {/* ─── 4. Right Inspector Card (Asset Details & Nearby Infrastructure) ─── */}
       {selectedLandmark && (
         <div className="absolute top-20 right-4 z-30 w-80 sm:w-88 max-h-[calc(100%-110px)] overflow-y-auto bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl p-4 interactive-panel thin-scrollbar text-xs space-y-3.5 animate-pageIn">
-          {/* Card Header with Image Thumbnail */}
           <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
             <div className="flex items-center gap-3">
               <img
@@ -655,7 +702,6 @@ export default function BengaluruDigitalTwin() {
             </button>
           </div>
 
-          {/* Details Section */}
           <div>
             <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
               Details
@@ -684,7 +730,6 @@ export default function BengaluruDigitalTwin() {
             </div>
           </div>
 
-          {/* Nearby Infrastructure (Relational Matrix) */}
           <div className="pt-3 border-t border-slate-800">
             <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 mb-2">
               Nearby Infrastructure
@@ -723,7 +768,6 @@ export default function BengaluruDigitalTwin() {
             </div>
           </div>
 
-          {/* Coordinates & Action */}
           <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-mono">
             <div>
               <span className="text-[9px] text-slate-500 uppercase block">Coordinates</span>
@@ -731,6 +775,7 @@ export default function BengaluruDigitalTwin() {
             </div>
             <button
               onClick={() => {
+                if (viewEngine !== 'matrix3d') setViewEngine('matrix3d')
                 setPan({
                   x: (50 - selectedLandmark.leftPct) * 4,
                   y: (50 - selectedLandmark.topPct) * 3,
@@ -747,14 +792,15 @@ export default function BengaluruDigitalTwin() {
 
       {/* ─── 5. Bottom Dock & Footer Controls ─── */}
       <div className="absolute bottom-3 left-4 right-4 z-30 flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
-        {/* Bottom-Left: Data Sources & Attribution */}
         <div className="bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-xl text-[11px] font-mono text-slate-400 shadow-lg interactive-panel hidden sm:flex items-center gap-2">
           <span className="font-bold text-slate-300">Data Sources:</span>
           <span>Cesium</span>
           <span>&bull;</span>
+          <span>Google Earth 3D</span>
+          <span>&bull;</span>
           <span>OpenStreetMap</span>
           <span>&bull;</span>
-          <span>Government of Karnataka</span>
+          <span>Gov of Karnataka</span>
           <a
             href="https://www.bbmp.gov.in/gisviewer/"
             target="_blank"
@@ -765,7 +811,6 @@ export default function BengaluruDigitalTwin() {
           </a>
         </div>
 
-        {/* Bottom-Center: Live Layer Status Ticker */}
         <div className="bg-slate-900/95 border border-slate-700/80 px-4 py-2 rounded-xl shadow-lg interactive-panel flex items-center gap-3 overflow-x-auto text-[11px] font-mono">
           <StatusBadge icon={<Building2 size={12} className="text-sky-400" />} label="Buildings" status="ONLINE" />
           <span className="text-slate-700">|</span>
@@ -780,7 +825,6 @@ export default function BengaluruDigitalTwin() {
           <StatusBadge icon={<Trees size={12} className="text-emerald-400" />} label="Parks" status="ONLINE" />
         </div>
 
-        {/* Bottom-Right: Day/Night Mode & Scale Bar */}
         <div className="bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-lg interactive-panel flex items-center gap-3 text-xs font-mono text-slate-300">
           <button
             onClick={() => setIsDaylight(!isDaylight)}
@@ -848,8 +892,4 @@ function getCategoryIcon(category) {
     default:
       return <MapPin size={13} className="text-amber-400" />
   }
-}
-
-function selectedNodeOrActive(selected, item) {
-  return selected && selected.id === item.id
 }
