@@ -1,7 +1,352 @@
-import { ArrowRight, Bot, Camera, ChartNoAxesCombined, CheckCircle2, UsersRound } from 'lucide-react'
+import { ArrowRight, Bot, Camera, CheckCircle2, ShieldCheck, Users, Building2, PhoneCall, FileText, CheckCheck, Clock, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import HeroNetwork from '../components/HeroNetwork'
 import HeroAnalysisCard from '../components/HeroAnalysisCard'
-const features = [[Camera, 'Photo-based reporting', 'Attach a photo. AI reads the scene and structures your report.'], [Bot, 'Gemini-powered analysis', 'Urgency score, department routing and a resolution pathway — auto-generated.'], [UsersRound, 'Community verification', 'Neighbours confirm the issue is real. Crowd-sourced ground truth.'], [ChartNoAxesCombined, 'Status tracking', 'Watch the local workflow move from filed to verified, assigned and resolved.']]
-const steps = [['01', 'File the report', 'Title, photo, location and a short description.'], ['02', 'AI suggests category', 'Gemini classifies the issue type automatically.'], ['03', 'Select department', 'Confirm or override the suggested BBMP department.'], ['04', 'Suggest response', 'AI drafts a three-step workflow for review.'], ['05', 'Prototype review', 'The console shows local status and assignment actions.'], ['06', 'Community loop', 'Citizens verify and track the local demo workflow.']]
-export default function Home() { return <main><section className="civic-grid hero-cinematic border-b border-line"><HeroNetwork /><div className="shell relative z-10 grid gap-12 py-16 lg:grid-cols-[1.45fr_.85fr] lg:py-20"><div className="relative z-10"><span className="eyebrow-pill hero-eyebrow">🏙️ Bengaluru Civic AI</span><h1 className="heading mt-6 text-[clamp(40px,6vw,72px)] leading-[1.02]"><span className="hero-word" style={{ animationDelay: '0ms' }}>Namma</span><span className="hero-word ml-3" style={{ animationDelay: '120ms' }}>city.</span><br /><span className="hero-word hero-underline" style={{ animationDelay: '240ms' }}>Our</span><span className="hero-word ml-3 hero-underline" style={{ animationDelay: '360ms' }}>fix.</span></h1><p className="hero-subtext mt-7 max-w-[500px] text-[15px] leading-7 text-slate-400">NammaFix AI helps Bengalureans report civic issues, get instant AI analysis, and push them toward resolution — no government login needed.</p><div className="hero-ctas mt-8 flex flex-wrap gap-3"><Link to="/report" className="btn-primary hero-cta !px-5 !py-3">Report an issue <ArrowRight size={17} /></Link><Link to="/demo-flow" className="btn-secondary hero-cta !px-5 !py-3">See the demo flow</Link></div><p className="hero-proof data-mono mt-7 text-xs text-slate-400"><span>105 community verifications</span><span className="mx-2 text-civic">·</span><span>6 reports filed</span><span className="mx-2 text-civic">·</span><span>avg urgency 76/100</span></p></div><div className="relative z-10 mx-auto w-full max-w-[320px] self-center"><HeroAnalysisCard /></div></div></section><section className="shell py-12 sm:py-16"><p className="section-label">What it does</p><h2 className="heading max-w-2xl text-3xl sm:text-[32px]">A real reporting workflow — not a civic promise.</h2><div className="mt-8 grid gap-4 sm:grid-cols-2">{features.map(([Icon, title, copy]) => <article className="feature-card panel p-6" key={title}><span className="feature-icon"><Icon size={21} /></span><h3 className="mt-5 font-display text-base font-bold text-slate-100">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p></article>)}</div><div className="mt-6 flex gap-3 rounded-xl border border-amber/30 bg-amber/10 p-4 text-sm leading-6 text-amber-100"><CheckCircle2 className="mt-1 shrink-0 text-amber" size={18} /><p>This MVP does not connect to official municipal systems yet. It shows how AI can structure and prioritise civic reports.</p></div></section><section className="border-y border-line bg-panel"><div className="shell py-12 sm:py-16"><p className="section-label">The process</p><h2 className="heading text-3xl">Six steps. Zero bureaucracy.</h2><div className="relative mt-9 grid gap-5 md:grid-cols-3"><div className="process-line absolute left-0 right-0 top-5 hidden h-px md:block" />{steps.map(([number, title, copy]) => <article className="relative z-10 flex gap-4" key={number}><span className="data-mono grid h-10 w-10 shrink-0 place-items-center rounded-full border border-civic/40 bg-ink text-xs font-bold text-civic">{number}</span><div><h3 className="font-display text-base font-bold text-slate-100">{title}</h3><p className="mt-1 text-[13px] leading-5 text-slate-400">{copy}</p></div></article>)}</div></div></section><section className="shell py-16 text-center sm:py-20"><h2 className="heading text-3xl">Ready to try the reporting flow?</h2><p className="muted mx-auto mt-3 max-w-xl">Reports and demo workflow actions are stored in this browser.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link to="/report" className="btn-primary">Create a report</Link><Link to="/demo-flow" className="btn-secondary">See demo flow</Link></div></section></main> }
+import ThreeCityCanvas from '../components/ThreeCityCanvas'
+import CivicHotspots from '../components/CivicHotspots'
+import { use3DTilt } from '../hooks/use3DTilt'
+
+const features = [
+  {
+    icon: Camera,
+    title: 'Visual Evidence Intake',
+    kannada: 'ಛಾಯಾಚಿತ್ರ ಸಾಕ್ಷ್ಯ ಸಲ್ಲಿಕೆ',
+    copy: 'Upload high-resolution geotagged photographs. Computer vision extracts defect severity, GPS coordinates, and ward jurisdiction.',
+  },
+  {
+    icon: Bot,
+    title: 'Autonomous AI Triage',
+    kannada: 'ಸ್ವಯಂಚಾಲಿತ ಎಐ ವರ್ಗೀಕರಣ',
+    copy: 'Deterministic neural triage assigns severity scores (0-100) and routes grievances directly to BBMP, BWSSB, or BESCOM.',
+  },
+  {
+    icon: Users,
+    title: 'Citizen Community Verification',
+    kannada: 'ಸಾರ್ವಜನಿಕ ಪರಿಶೀಲನೆ',
+    copy: 'Neighbours and commuters confirm active ground hazards with one click, elevating urgent community priorities to ward engineers.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Statutory SLA Enforcement',
+    kannada: 'ಕಡ್ಡಾಯ ಸೇವಾ ಮಟ್ಟದ ಭರವಸೆ',
+    copy: 'Mandatory resolution timeframes (24h to 72h) backed by official BBMP citizen charters and public executive audit trails.',
+  },
+]
+
+const steps = [
+  {
+    step: '01',
+    title: 'Citizen Files Grievance',
+    kannada: 'ದೂರು ಸಲ್ಲಿಕೆ',
+    copy: 'Submit location & photos in under 45 seconds via public mobile or web portal.',
+    sla: 'Instant Docket Generated',
+  },
+  {
+    step: '02',
+    title: 'Automated AI Triage',
+    kannada: 'ಎಐ ವಿಶ್ಲೇಷಣೆ',
+    copy: 'AI computes urgency index and assigns responsible BBMP engineering division.',
+    sla: '< 2.0 Seconds',
+  },
+  {
+    step: '03',
+    title: 'AEE Ward Inspection',
+    kannada: 'ಸ್ಥಳ ಪರಿಶೀಲನೆ',
+    copy: 'Assistant Executive Engineer verifies site safety and issues contractor work order.',
+    sla: 'Within 12 Hours',
+  },
+  {
+    step: '04',
+    title: 'On-Ground Roadwork',
+    kannada: 'ಕಾಮಗಾರಿ ಅನುಷ್ಠಾನ',
+    copy: 'Contractor deploys asphalt pavers, desilting machinery, or electrical repair crew.',
+    sla: 'Within 24–48 Hours',
+  },
+  {
+    step: '05',
+    title: 'Citizen Verification & Sign-off',
+    kannada: 'ಸಾರ್ವಜನಿಕ ಧೃಡೀಕರಣ',
+    copy: 'Before/after photos verified by citizen reporters before grievance closure is logged.',
+    sla: 'Public Audit Certified',
+  },
+]
+
+function FeatureCard3D({ feature }) {
+  const tilt = use3DTilt(10, 1000)
+  const Icon = feature.icon
+
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      style={tilt.style}
+      className="card-3d-wrapper rounded-xl border border-slate-300 bg-white p-6 shadow-sm hover:border-slate-400"
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-civic layer-z-2 mb-4">
+        <Icon size={24} />
+      </div>
+      <h3 className="font-display text-lg font-bold text-slate-900 layer-z-1">
+        {feature.title}
+      </h3>
+      <p className="font-kannada text-xs font-semibold text-amber-700 mt-0.5">
+        {feature.kannada}
+      </p>
+      <p className="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed layer-z-1">
+        {feature.copy}
+      </p>
+    </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <main className="bg-slate-50 text-slate-900">
+      {/* Official Government Live Ticker Strip */}
+      <section className="bg-white border-b border-slate-200 py-2.5 px-4 sm:px-8">
+        <div className="shell flex flex-col md:flex-row md:items-center gap-3 justify-between">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-800">
+              BBMP Live Grievance Dispatch Feed:
+            </span>
+          </div>
+          <div className="overflow-hidden whitespace-nowrap text-xs font-mono text-slate-600">
+            <span className="inline-block animate-float">
+              [Ward 84 Whitefield] Pothole asphalt patching certified (09:42 AM) &bull; [Ward 150 Bellandur] Drainage desilting completed (10:15 AM) &bull; [Ward 174 HSR Layout] Junction streetlight restored (11:05 AM) &bull; [Ward 94 Malleshwaram] Footpath slab replaced (11:30 AM)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Hero Section */}
+      <section className="shell py-10 sm:py-16">
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_.9fr] items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 font-mono text-xs font-bold text-slate-800 shadow-sm mb-4">
+              <Building2 size={14} className="text-govblue" />
+              BRUHAT BENGALURU MAHANAGARA PALIKE &bull; 198 WARDS
+            </div>
+
+            <h1 className="heading text-3xl sm:text-5xl lg:text-6xl leading-tight font-extrabold text-slate-900">
+              Bengaluru Civic Grievance &amp; AI Redressal Portal
+            </h1>
+
+            <p className="font-kannada text-base font-semibold text-slate-700 mt-2">
+              ಬೃಹತ್ ಬೆಂಗಳೂರು ಮಹಾನಗರ ಪಾಲಿಕೆ ನಾಗರಿಕ ದೂರು ನಿವಾರಣಾ ಪೋರ್ಟಲ್
+            </p>
+
+            <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
+              Official public gateway for reporting road hazards, water fractures, garbage overflow, and public safety issues. Every report receives an official tracking docket, automated AI department routing, and statutory SLA enforcement.
+            </p>
+
+            {/* Official Call to Actions */}
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link to="/report" className="btn-saffron text-sm !px-6 !py-3 font-bold shadow-sm">
+                File a Grievance (ದೂರು ಸಲ್ಲಿಸಿ) <ArrowRight size={16} />
+              </Link>
+              <Link to="/dashboard" className="btn-secondary text-sm !px-6 !py-3 font-bold">
+                View Public Ward Registry
+              </Link>
+            </div>
+
+            {/* Official BBMP KPI Badges */}
+            <div className="mt-8 grid grid-cols-3 gap-3 border-t border-slate-200 pt-6">
+              <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">Active Wards</span>
+                <span className="font-display text-2xl font-black text-slate-900 mt-0.5 block">198</span>
+                <span className="text-[10px] text-emerald-800 font-semibold">Citywide Coverage</span>
+              </div>
+              <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">AI Triage Speed</span>
+                <span className="font-display text-2xl font-black text-govblue mt-0.5 block">&lt; 2.0s</span>
+                <span className="text-[10px] text-slate-500">Instant Routing</span>
+              </div>
+              <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">SLA Compliance</span>
+                <span className="font-display text-2xl font-black text-emerald-700 mt-0.5 block">98.2%</span>
+                <span className="text-[10px] text-slate-500">Statutory Standard</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: 3D Hero Docket */}
+          <div>
+            <HeroAnalysisCard />
+          </div>
+        </div>
+      </section>
+
+      {/* 3D WebGL City Topography Stage */}
+      <section className="shell my-8">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+            <MapPin size={14} /> Interactive 3D Municipal Terrain
+          </div>
+          <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
+            3D Bengaluru Urban Infrastructure Matrix
+          </h2>
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            Live WebGL representation of Bengaluru wards. Rotate camera in 3D to monitor real-time hazard markers, active ward roadworks, and resolved complaints across the metropolitan area.
+          </p>
+        </div>
+
+        <ThreeCityCanvas />
+      </section>
+
+      {/* BBMP Integrated Command Center Showcase */}
+      <section className="shell my-16">
+        <div className="rounded-2xl border border-slate-300 bg-white overflow-hidden shadow-md">
+          <div className="grid lg:grid-cols-2">
+            <div className="p-8 lg:p-12 flex flex-col justify-center">
+              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-slate-100 text-slate-800 border border-slate-300 font-mono text-xs font-bold uppercase w-fit mb-3">
+                <ShieldCheck size={14} className="text-govblue" /> Smart Governance Infrastructure
+              </span>
+              <h2 className="heading text-2xl sm:text-3xl text-slate-900 font-black leading-tight">
+                BBMP Smart City Integrated Command &amp; Control Centre
+              </h2>
+              <p className="font-kannada text-sm font-semibold text-slate-700 mt-1">
+                ಬೆಂಗಳೂರು ಮಹಾನಗರ ಸಮಗ್ರ ಕಮಾಂಡ್ ಮತ್ತು ಕಂಟ್ರೋಲ್ ಸೆಂಟರ್
+              </p>
+              <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+                NammaFix AI connects citizen mobile reports directly to Bengaluru's central municipal command matrix. Assistant Executive Engineers, zonal supervisors, and on-ground contractors coordinate road repairs with photographic audit chains.
+              </p>
+
+              <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <strong className="block text-slate-900 font-bold">RTI Act Compliant</strong>
+                  <span className="text-slate-500 text-[11px]">Sec 4(1)(b) public audit logs</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <strong className="block text-slate-900 font-bold">Helpline 1533 Direct</strong>
+                  <span className="text-slate-500 text-[11px]">Toll-free citizen voice integration</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link to="/authority" className="btn-primary text-xs font-bold">
+                  Access Municipal Command Console &rarr;
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative min-h-[300px] lg:min-h-[420px] bg-slate-100 border-t lg:border-t-0 lg:border-l border-slate-200">
+              <img
+                src="/bbmp_command_center.jpg"
+                alt="BBMP Smart City Integrated Command & Control Center"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5-Step Civic Complaint Lifecycle */}
+      <section className="shell my-16">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+            Standard Operating Procedure
+          </span>
+          <h2 className="heading text-2xl sm:text-4xl text-slate-900 font-black mt-1">
+            5-Stage Grievance Resolution Lifecycle
+          </h2>
+          <p className="text-sm text-slate-600 mt-2">
+            Every citizen report follows an automated statutory workflow with transparent milestone sign-offs.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {steps.map((item) => (
+            <div
+              key={item.step}
+              className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm flex flex-col justify-between hover:border-slate-400 transition"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-civic text-white font-mono text-xs font-bold">
+                    {item.step}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                    SLA
+                  </span>
+                </div>
+                <h3 className="font-display text-sm font-bold text-slate-900">
+                  {item.title}
+                </h3>
+                <p className="font-kannada text-[11px] font-semibold text-amber-700 mt-0.5">
+                  {item.kannada}
+                </p>
+                <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+                  {item.copy}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 font-mono text-[10px] text-govblue font-bold flex items-center gap-1">
+                <Clock size={12} /> {item.sla}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3D Interactive Feature Grid */}
+      <section className="shell my-16">
+        <div className="max-w-2xl mb-8">
+          <span className="font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+            Public Governance Architecture
+          </span>
+          <h2 className="heading text-2xl sm:text-3xl text-slate-900 font-black mt-1">
+            Engineered for 14 Million Citizens
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">
+            Built to Indian Public Sector &amp; e-Governance digital service benchmarks.
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature) => (
+            <FeatureCard3D key={feature.title} feature={feature} />
+          ))}
+        </div>
+      </section>
+
+      {/* On-Ground Roadwork Showcase */}
+      <section className="shell my-16">
+        <div className="rounded-2xl border border-slate-300 bg-white overflow-hidden shadow-md">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative min-h-[280px] lg:min-h-[380px] bg-slate-100 border-b lg:border-b-0 lg:border-r border-slate-200">
+              <img
+                src="/bbmp_road_inspection.jpg"
+                alt="BBMP civil engineers inspecting road resurfacing on MG Road Bengaluru"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+            <div className="p-8 lg:p-10 flex flex-col justify-center">
+              <span className="font-mono text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">
+                &bull; Certified Field Execution
+              </span>
+              <h2 className="heading text-2xl sm:text-3xl text-slate-900 font-black leading-tight">
+                Rapid Road Surface Restoration Program
+              </h2>
+              <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+                BBMP road engineering squads utilize modern asphalt compactors, sensor-based gradient analyzers, and rapid curing bituminous mixes. Citizens can inspect completion certificates directly on their complaint tracking page.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link to="/report" className="btn-primary text-xs font-bold">
+                  Report a Road Pothole &rarr;
+                </Link>
+                <Link to="/impact" className="btn-secondary text-xs font-bold">
+                  View Ward SLA Metrics
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8-Zone Civic Operations Radar */}
+      <div className="shell">
+        <CivicHotspots />
+      </div>
+    </main>
+  )
+}

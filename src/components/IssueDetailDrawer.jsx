@@ -1,4 +1,179 @@
-import { CheckCircle2, MapPin, Share2, X } from 'lucide-react'
+import { CheckCircle2, MapPin, Share2, X, FileText, Landmark, Clock, ShieldAlert } from 'lucide-react'
 import { useEffect } from 'react'
-import { formatDate, severityStyles, statusStyles, urgencyTone, statuses } from '../utils/issues'
-export default function IssueDetailDrawer({ issue, onClose, onVerify, onShare }) { useEffect(() => { const onKey = (event) => { if (event.key === 'Escape') onClose() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [onClose]); const stage = statuses.indexOf(issue.status); return <div className="drawer-backdrop" onMouseDown={onClose}><aside className="issue-drawer" role="dialog" aria-modal="true" aria-label={`Issue details for ${issue.title}`} onMouseDown={(event) => event.stopPropagation()}><div className="drawer-header"><div className="flex flex-wrap gap-2"><span className={`badge ${severityStyles[issue.severity]}`}>{issue.severity}</span><span className={`badge ${statusStyles[issue.status]}`}>{issue.status}</span></div><div className="flex gap-1"><button onClick={() => onShare(issue)} className="rounded-lg p-2 text-slate-400 hover:bg-raised hover:text-civic" aria-label="Share this report"><Share2 size={18} /></button><button onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-raised hover:text-white" aria-label="Close details panel"><X size={20} /></button></div></div><h2 className="heading mt-5 text-[22px] leading-7">{issue.title}</h2><p className="data-mono mt-2 text-[11px] text-slate-500">{issue.id} · Submitted {formatDate(issue.createdAt)} · {issue.source || 'Demo Seed'}</p><section className="drawer-ai-block"><p className="font-display text-sm font-bold text-civic">🤖 AI Analysis</p><div className="mt-4 space-y-3 text-[13px]"><p className="flex justify-between gap-4"><span className="text-slate-400">Category</span><span className="text-right text-slate-100">{issue.category}</span></p><div><div className="flex justify-between"><span className="text-slate-400">Urgency score</span><span className="data-mono text-danger">{issue.urgencyScore}/100</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-raised"><div className={`h-full rounded-full ${urgencyTone(issue.urgencyScore)}`} style={{ width: `${issue.urgencyScore}%` }} /></div></div><p className="flex justify-between gap-4"><span className="text-slate-400">Suggested dept</span><span className="text-right text-slate-100">{issue.department}</span></p></div><p className="mt-4 border-t border-civic/15 pt-4 text-sm leading-6 text-slate-300"><b className="font-display text-civic">AI-generated response workflow</b><br />{issue.ai.actionPlan.join(' ')}</p></section><section className="mt-6"><p className="section-label">Location</p><p className="flex gap-2 text-sm text-slate-300"><MapPin className="shrink-0 text-civic" size={17} />{issue.location}{issue.area ? ` · ${issue.area}` : ''}</p><svg className="drawer-map mt-4" viewBox="0 0 400 130" aria-label="Stylized Bengaluru location map"><path d="M0 34 70 12l50 35 72-25 52 41 67-34 87 40M-8 95l62-28 54 31 74-43 70 30 56-44 100 36" fill="none" stroke="#1E2D42" strokeWidth="2" /><path d="m205 34 14 23-14 24-14-24 14-23Z" fill="#00C9A7" /><circle cx="205" cy="57" r="5" fill="#0B0F14" /></svg></section><section className="mt-6"><p className="section-label">Community</p><div className="flex items-center justify-between"><div className="flex items-center"><span className="avatar avatar-a">AK</span><span className="avatar avatar-b">RM</span><span className="avatar avatar-c">PS</span><span className="ml-3 text-sm text-slate-300">{issue.verifications} verifications</span></div><button className="btn-primary !px-3 !py-2 text-xs" onClick={() => onVerify(issue.id)}><CheckCircle2 size={15} />Verify this issue</button></div></section><section className="mt-7"><p className="section-label">Status timeline</p><div className="mt-4 space-y-0">{statuses.map((status, index) => <div className="timeline-item" key={status}><span className={`timeline-dot ${index <= stage ? 'timeline-active' : ''}`} /><div><p className={index <= stage ? 'text-sm font-semibold text-slate-100' : 'text-sm text-slate-500'}>{status === 'Reported' ? 'Filed' : status}</p>{index === stage && <p className="mt-0.5 text-xs text-civic">Current status</p>}</div></div>)}</div></section></aside></div> }
+import { formatDate, statuses } from '../utils/issues'
+
+export default function IssueDetailDrawer({ issue, onClose, onVerify, onShare }) {
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  if (!issue) return null
+
+  const stage = statuses.indexOf(issue.status)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-none flex justify-end"
+      onMouseDown={onClose}
+    >
+      <aside
+        className="w-full max-w-lg bg-white h-full overflow-y-auto border-l border-slate-300 shadow-2xl p-6 sm:p-8 flex flex-col justify-between"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Official Docket ${issue.id}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div>
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-govblue" />
+              <span className="font-mono text-xs font-bold text-slate-800">{issue.id}</span>
+              <span className="text-[10px] font-mono font-bold bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-slate-700">
+                {issue.status}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {onShare && (
+                <button
+                  onClick={() => onShare(issue)}
+                  className="p-1.5 text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 transition"
+                  title="Share docket link"
+                >
+                  <Share2 size={16} />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 transition"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Grievance Title & Metadata */}
+          <h2 className="heading text-xl sm:text-2xl text-slate-900 font-extrabold mt-4 leading-snug">
+            {issue.title}
+          </h2>
+          <p className="font-mono text-[11px] text-slate-500 mt-1">
+            Registered: {formatDate(issue.createdAt)} &bull; Source: Citizen Mobile Portal
+          </p>
+
+          {/* Photo if available */}
+          {issue.image && (
+            <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+              <img src={issue.image} alt={issue.title} className="h-48 w-full object-cover" />
+            </div>
+          )}
+
+          {/* AI Municipal Analysis Box */}
+          <section className="mt-5 rounded-lg border border-slate-300 bg-slate-50 p-4">
+            <div className="flex items-center justify-between font-mono text-xs font-bold mb-3">
+              <span className="text-govblue flex items-center gap-1.5">
+                <Landmark size={14} /> BBMP Automated Triage
+              </span>
+              <span className="text-slate-800 font-black">
+                Urgency: {issue.urgencyScore} / 100
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-700">
+              <div className="flex justify-between py-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Defect Classification</span>
+                <span className="font-bold text-slate-900">{issue.category}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Assigned Department</span>
+                <span className="font-bold text-govblue">{issue.department}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500 font-medium">Resolution Timeframe</span>
+                <span className="font-bold text-slate-900">{issue.ai?.estimatedResolutionTime || 'Within 48h'}</span>
+              </div>
+            </div>
+
+            {/* Action Checklist */}
+            <div className="mt-3 pt-3 border-t border-slate-200">
+              <span className="font-mono text-[10px] font-bold uppercase text-slate-500 block mb-1.5">
+                Standard Engineering Action Plan:
+              </span>
+              <ul className="space-y-1 text-xs text-slate-700">
+                {issue.ai?.actionPlan?.map((step, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="font-mono text-govblue font-bold">0{idx + 1}.</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          {/* Location & Jurisdiction */}
+          <section className="mt-5 text-xs text-slate-700">
+            <span className="font-mono text-[11px] font-bold uppercase text-slate-500 block mb-1">
+              Location &amp; Ward Boundary
+            </span>
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50">
+              <MapPin size={16} className="text-govblue shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-slate-900">{issue.location}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">BBMP Ward Jurisdiction: {issue.area || 'Bengaluru Ward'}</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Resolution Timeline */}
+          <section className="mt-6">
+            <span className="font-mono text-[11px] font-bold uppercase text-slate-500 block mb-3">
+              Statutory Redressal Milestones
+            </span>
+            <div className="space-y-3">
+              {statuses.map((status, index) => (
+                <div className="flex items-center gap-3 text-xs" key={status}>
+                  <span className={`h-4 w-4 rounded-full flex items-center justify-center border-2 ${
+                    index <= stage
+                      ? 'bg-civic border-civic text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}>
+                    {index <= stage && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  </span>
+                  <span className={`font-semibold ${index <= stage ? 'text-slate-900' : 'text-slate-500'}`}>
+                    {status}
+                  </span>
+                  {index === stage && (
+                    <span className="font-mono text-[10px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded">
+                      Current Milestone
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Verification Action Bottom */}
+        <div className="pt-6 mt-6 border-t border-slate-200">
+          <div className="flex items-center justify-between mb-3 text-xs font-mono">
+            <span className="text-slate-600 font-bold">
+              Citizen Validations: <strong className="text-slate-900">{issue.verifications}</strong>
+            </span>
+            <span className="text-emerald-800 font-bold">● Active Docket</span>
+          </div>
+          <button
+            onClick={() => onVerify(issue.id)}
+            className="btn-primary w-full text-xs font-bold !py-3 flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 size={16} /> Endorse &amp; Verify Issue Ground-Truth
+          </button>
+        </div>
+      </aside>
+    </div>
+  )
+}

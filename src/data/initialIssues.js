@@ -27,7 +27,7 @@ export const civicVisual = (category = 'General') => {
 const now = Date.now()
 const hoursAgo = (hours) => new Date(now - hours * 60 * 60 * 1000).toISOString()
 
-export const demoIssues = [
+export const initialIssues = [
   {
     id: 'NF-1048', title: 'Deep pothole near Whitefield Main Road', category: 'Pothole / Road Damage', severity: 'Critical', urgencyScore: 94,
     description: 'A large pothole has opened up beside the busy turning lane near the metro feeder stop. Two-wheelers are swerving into traffic, especially after rain.',
