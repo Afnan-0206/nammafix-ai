@@ -1,7 +1,10 @@
-import { ArrowRight, Bot, Camera, CheckCircle2, ShieldCheck, Users, Building2, PhoneCall, FileText, CheckCheck, Clock, MapPin } from 'lucide-react'
+import { ArrowRight, Bot, Camera, CheckCircle2, ShieldCheck, Users, Building2, PhoneCall, FileText, CheckCheck, Clock, MapPin, Wrench, Eye, ShieldAlert, Sparkles, Layers, Globe } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroAnalysisCard from '../components/HeroAnalysisCard'
+import BengaluruDigitalTwin from '../components/BengaluruDigitalTwin'
 import ThreeCityCanvas from '../components/ThreeCityCanvas'
+import ThreeMachineryViewer from '../components/ThreeMachineryViewer'
 import CivicHotspots from '../components/CivicHotspots'
 import { use3DTilt } from '../hooks/use3DTilt'
 
@@ -63,7 +66,7 @@ const steps = [
   },
   {
     step: '05',
-    title: 'Citizen Verification & Sign-off',
+    title: 'Citizen Sign-off & Audit',
     kannada: 'ಸಾರ್ವಜನಿಕ ಧೃಡೀಕರಣ',
     copy: 'Before/after photos verified by citizen reporters before grievance closure is logged.',
     sla: 'Public Audit Certified',
@@ -80,25 +83,71 @@ function FeatureCard3D({ feature }) {
       onMouseMove={tilt.onMouseMove}
       onMouseLeave={tilt.onMouseLeave}
       style={tilt.style}
-      className="card-3d-wrapper rounded-xl border border-slate-300 bg-white p-6 shadow-sm hover:border-slate-400"
+      className="card-3d-wrapper rounded-xl border border-slate-300 bg-white p-6 shadow-sm hover:border-slate-400 flex flex-col justify-between"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-civic layer-z-2 mb-4">
-        <Icon size={24} />
+      <div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 border border-slate-300 text-civic layer-z-2 mb-4">
+          <Icon size={24} />
+        </div>
+        <h3 className="font-display text-lg font-bold text-slate-900 layer-z-1">
+          {feature.title}
+        </h3>
+        <p className="font-kannada text-xs font-semibold text-amber-700 mt-0.5">
+          {feature.kannada}
+        </p>
+        <p className="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed layer-z-1">
+          {feature.copy}
+        </p>
       </div>
-      <h3 className="font-display text-lg font-bold text-slate-900 layer-z-1">
-        {feature.title}
-      </h3>
-      <p className="font-kannada text-xs font-semibold text-amber-700 mt-0.5">
-        {feature.kannada}
-      </p>
-      <p className="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed layer-z-1">
-        {feature.copy}
-      </p>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono text-slate-500 layer-z-1">
+        <span>BBMP e-Gov Benchmark</span>
+        <span className="text-emerald-700 font-bold">Standard 100%</span>
+      </div>
     </div>
   )
 }
 
-export default function Home() {
+function StepCard3D({ item }) {
+  const tilt = use3DTilt(8, 1000)
+
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      style={tilt.style}
+      className="card-3d-wrapper rounded-xl border border-slate-300 bg-white p-5 shadow-sm flex flex-col justify-between hover:border-slate-400 transition"
+    >
+      <div>
+        <div className="flex items-center justify-between mb-3 layer-z-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-civic text-white font-mono text-xs font-bold">
+            {item.step}
+          </span>
+          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+            SLA MILESTONE
+          </span>
+        </div>
+        <h3 className="font-display text-sm font-bold text-slate-900 layer-z-1">
+          {item.title}
+        </h3>
+        <p className="font-kannada text-[11px] font-semibold text-amber-700 mt-0.5">
+          {item.kannada}
+        </p>
+        <p className="mt-2 text-xs text-slate-600 leading-relaxed layer-z-1">
+          {item.copy}
+        </p>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-slate-100 font-mono text-[10px] text-govblue font-bold flex items-center gap-1 layer-z-1">
+        <Clock size={12} /> {item.sla}
+      </div>
+    </div>
+  )
+}
+
+export default function Home({ issues = [] }) {
+  const [digitalTwinMode, setDigitalTwinMode] = useState('geospatial') // 'geospatial' | 'wardSimulation'
+
   return (
     <main className="bg-slate-50 text-slate-900">
       {/* Official Government Live Ticker Strip */}
@@ -106,13 +155,13 @@ export default function Home() {
         <div className="shell flex flex-col md:flex-row md:items-center gap-3 justify-between">
           <div className="flex items-center gap-2 shrink-0">
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-800">
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900">
               BBMP Live Grievance Dispatch Feed:
             </span>
           </div>
-          <div className="overflow-hidden whitespace-nowrap text-xs font-mono text-slate-600">
+          <div className="overflow-hidden whitespace-nowrap text-xs font-mono text-slate-700">
             <span className="inline-block animate-float">
-              [Ward 84 Whitefield] Pothole asphalt patching certified (09:42 AM) &bull; [Ward 150 Bellandur] Drainage desilting completed (10:15 AM) &bull; [Ward 174 HSR Layout] Junction streetlight restored (11:05 AM) &bull; [Ward 94 Malleshwaram] Footpath slab replaced (11:30 AM)
+              [Ward 84 Whitefield] Rapid asphalt road patch completed (09:42 AM) &bull; [Ward 150 Bellandur] Drainage culvert desilting certified (10:15 AM) &bull; [Ward 174 HSR Layout] Junction high-mast light restored (11:05 AM) &bull; [Ward 94 Malleshwaram] Footpath slab replaced (11:30 AM)
             </span>
           </div>
         </div>
@@ -124,7 +173,7 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 font-mono text-xs font-bold text-slate-800 shadow-sm mb-4">
               <Building2 size={14} className="text-govblue" />
-              BRUHAT BENGALURU MAHANAGARA PALIKE &bull; 198 WARDS
+              GREATER BENGALURU AUTHORITY (GBA) &bull; 5 CITY CORPORATIONS
             </div>
 
             <h1 className="heading text-3xl sm:text-5xl lg:text-6xl leading-tight font-extrabold text-slate-900">
@@ -136,7 +185,7 @@ export default function Home() {
             </p>
 
             <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
-              Official public gateway for reporting road hazards, water fractures, garbage overflow, and public safety issues. Every report receives an official tracking docket, automated AI department routing, and statutory SLA enforcement.
+              Official public gateway for reporting road hazards, water fractures, garbage overflow, and public safety issues. Connected directly to Bengaluru's GIS infrastructure matrix, autonomous AI departmental triage, and statutory SLA enforcement.
             </p>
 
             {/* Official Call to Actions */}
@@ -159,12 +208,12 @@ export default function Home() {
               <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
                 <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">AI Triage Speed</span>
                 <span className="font-display text-2xl font-black text-govblue mt-0.5 block">&lt; 2.0s</span>
-                <span className="text-[10px] text-slate-500">Instant Routing</span>
+                <span className="text-[10px] text-slate-600 font-medium">Instant Routing</span>
               </div>
               <div className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
                 <span className="font-mono text-[10px] uppercase font-bold text-slate-500 block">SLA Compliance</span>
                 <span className="font-display text-2xl font-black text-emerald-700 mt-0.5 block">98.2%</span>
-                <span className="text-[10px] text-slate-500">Statutory Standard</span>
+                <span className="text-[10px] text-slate-600 font-medium">Statutory Standard</span>
               </div>
             </div>
           </div>
@@ -176,21 +225,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3D WebGL City Topography Stage */}
-      <section className="shell my-8">
-        <div className="mb-4">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
-            <MapPin size={14} /> Interactive 3D Municipal Terrain
+      {/* Flagship Geospatial Digital-Twin Infrastructure Matrix */}
+      <section className="shell my-12">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+              <Globe size={14} /> Real Geospatial Digital-Twin Layer Stack
+            </div>
+            <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
+              Bengaluru Urban Infrastructure Matrix &bull; Live 3D Twin
+            </h2>
+            <p className="text-sm text-slate-600 mt-1 max-w-3xl">
+              Geospatially projected across Greater Bengaluru. Inspect real-coordinate Namma Metro corridors, Rajakaluve stormwater drainage channels, lakes, arterial road traffic states, and live grievance dockets with real-time flood simulation.
+            </p>
           </div>
-          <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
-            3D Bengaluru Urban Infrastructure Matrix
-          </h2>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Live WebGL representation of Bengaluru wards. Rotate camera in 3D to monitor real-time hazard markers, active ward roadworks, and resolved complaints across the metropolitan area.
-          </p>
+
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-300 self-start sm:self-auto">
+            <button
+              onClick={() => setDigitalTwinMode('geospatial')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                digitalTwinMode === 'geospatial'
+                  ? 'bg-civic text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white'
+              }`}
+            >
+              <Layers size={13} /> Geospatial Twin (WGS84)
+            </button>
+            <button
+              onClick={() => setDigitalTwinMode('wardSimulation')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition flex items-center gap-1.5 ${
+                digitalTwinMode === 'wardSimulation'
+                  ? 'bg-civic text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white'
+              }`}
+            >
+              <Building2 size={13} /> Micro-Ward Topography
+            </button>
+          </div>
         </div>
 
-        <ThreeCityCanvas />
+        {digitalTwinMode === 'geospatial' ? (
+          <BengaluruDigitalTwin issues={issues} />
+        ) : (
+          <ThreeCityCanvas />
+        )}
       </section>
 
       {/* BBMP Integrated Command Center Showcase */}
@@ -240,6 +319,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Interactive 3D Municipal Machinery Exploration */}
+      <section className="shell my-16">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 font-mono text-xs font-bold text-govblue uppercase tracking-wider">
+            <Wrench size={14} /> Municipal Engineering Technology
+          </div>
+          <h2 className="heading text-2xl sm:text-3xl mt-1 text-slate-900">
+            BBMP High-Velocity Road Maintenance Fleet
+          </h2>
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            Interactive 3D model of modern automated equipment deployed across Bengaluru's municipal corporations. Inspect hydraulic patching systems and telemetry controllers.
+          </p>
+        </div>
+
+        <ThreeMachineryViewer />
+      </section>
+
       {/* 5-Step Civic Complaint Lifecycle */}
       <section className="shell my-16">
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -256,34 +352,7 @@ export default function Home() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((item) => (
-            <div
-              key={item.step}
-              className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm flex flex-col justify-between hover:border-slate-400 transition"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-civic text-white font-mono text-xs font-bold">
-                    {item.step}
-                  </span>
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                    SLA
-                  </span>
-                </div>
-                <h3 className="font-display text-sm font-bold text-slate-900">
-                  {item.title}
-                </h3>
-                <p className="font-kannada text-[11px] font-semibold text-amber-700 mt-0.5">
-                  {item.kannada}
-                </p>
-                <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-                  {item.copy}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 font-mono text-[10px] text-govblue font-bold flex items-center gap-1">
-                <Clock size={12} /> {item.sla}
-              </div>
-            </div>
+            <StepCard3D key={item.step} item={item} />
           ))}
         </div>
       </section>
@@ -316,7 +385,7 @@ export default function Home() {
             <div className="relative min-h-[280px] lg:min-h-[380px] bg-slate-100 border-b lg:border-b-0 lg:border-r border-slate-200">
               <img
                 src="/bbmp_road_inspection.jpg"
-                alt="BBMP civil engineers inspecting road resurfacing on MG Road Bengaluru"
+                alt="BBMP civil engineers inspecting road resurfacing in Bengaluru"
                 className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
@@ -344,7 +413,7 @@ export default function Home() {
       </section>
 
       {/* 8-Zone Civic Operations Radar */}
-      <div className="shell">
+      <div className="shell my-16">
         <CivicHotspots />
       </div>
     </main>

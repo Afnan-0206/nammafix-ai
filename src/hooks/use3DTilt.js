@@ -1,10 +1,11 @@
 import { useRef, useCallback } from 'react'
 
 /**
- * use3DTilt - Custom React Hook for physics-based 3D card tilt
- * Gives elements genuine 3D perspective depth with Z-axis layering and clean specular sheen.
+ * use3DTilt - Custom React Hook for physics-based 3D card tilt & multi-layer perspective
+ * Gives UI elements physical 3D responsiveness, realistic specular highlight reflection,
+ * and z-axis parallax layering with zero blur or neon glow.
  */
-export function use3DTilt(maxTilt = 12, perspective = 1000) {
+export function use3DTilt(maxTilt = 10, perspective = 1000) {
   const cardRef = useRef(null)
 
   const handleMouseMove = useCallback((e) => {
@@ -20,7 +21,7 @@ export function use3DTilt(maxTilt = 12, perspective = 1000) {
     const rotateX = ((y - centerY) / centerY) * -maxTilt
     const rotateY = ((x - centerX) / centerX) * maxTilt
 
-    card.style.transform = `perspective(${perspective}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.015, 1.015, 1.015)`
+    card.style.transform = `perspective(${perspective}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.018, 1.018, 1.018)`
   }, [maxTilt, perspective])
 
   const handleMouseLeave = useCallback(() => {
@@ -35,7 +36,8 @@ export function use3DTilt(maxTilt = 12, perspective = 1000) {
     onMouseLeave: handleMouseLeave,
     style: {
       transformStyle: 'preserve-3d',
-      transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+      transition: 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease',
+      willChange: 'transform',
     },
   }
 }

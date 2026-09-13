@@ -1,9 +1,9 @@
-import { Award, ArrowRight, CheckCircle2, ClipboardList, ShieldCheck, Trophy, Star, Medal, Users } from 'lucide-react'
+import { Award, ArrowRight, CheckCircle2, ClipboardList, ShieldCheck, Trophy, Star, Medal, Users, RotateCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import CountUp from '../components/CountUp'
 import { use3DTilt } from '../hooks/use3DTilt'
 
-function MedalCard3D({ name, kannada, unlocked, desc, tier, icon: Icon }) {
+function MedalCard3D({ name, kannada, unlocked, desc, tier, icon: Icon, docketNum }) {
   const tilt = use3DTilt(12, 1000)
 
   const metalColor =
@@ -18,27 +18,44 @@ function MedalCard3D({ name, kannada, unlocked, desc, tier, icon: Icon }) {
       onMouseMove={tilt.onMouseMove}
       onMouseLeave={tilt.onMouseLeave}
       style={tilt.style}
-      className={`card-3d-wrapper rounded-xl border p-5 shadow-sm transition ${
-        unlocked ? 'bg-white border-slate-300' : 'bg-slate-50 border-slate-200 opacity-60'
+      className={`card-3d-wrapper rounded-xl border p-5 shadow-sm transition group ${
+        unlocked ? 'bg-white border-slate-300' : 'bg-slate-50 border-slate-200 opacity-70'
       }`}
     >
       <div className="flex items-center gap-4">
-        {/* 3D Medal Coin */}
-        <div className={`h-14 w-14 rounded-full bg-gradient-to-br ${metalColor} border-2 flex items-center justify-center shadow-md layer-z-2 shrink-0`}>
-          <Icon size={24} />
+        {/* 3D Medal Coin with Flip Mechanism */}
+        <div className="perspective-1000 shrink-0">
+          <div className={`h-16 w-16 rounded-full medal-3d-coin bg-gradient-to-br ${metalColor} border-2 flex items-center justify-center shadow-md relative preserve-3d cursor-pointer`}>
+            {/* Front Side */}
+            <div className="absolute inset-0 flex items-center justify-center backface-hidden">
+              <Icon size={26} />
+            </div>
+            {/* Back Side (BBMP Seal & Stamp) */}
+            <div className="absolute inset-0 rounded-full bg-slate-900 text-amber-400 flex flex-col items-center justify-center p-1 text-center [transform:rotateY(180deg)] backface-hidden">
+              <ShieldCheck size={16} />
+              <span className="text-[8px] font-mono font-bold mt-0.5">BBMP SEAL</span>
+            </div>
+          </div>
         </div>
 
-        <div className="layer-z-1">
-          <div className="flex items-center gap-2">
+        <div className="layer-z-1 flex-1">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="font-display font-bold text-sm text-slate-900">{name}</h3>
-            {unlocked && (
-              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 rounded">
-                Unlocked
+            {unlocked ? (
+              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded">
+                Verified Award
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 border border-slate-300 px-1.5 py-0.5 rounded">
+                Locked
               </span>
             )}
           </div>
-          <p className="font-kannada text-[11px] font-semibold text-slate-500">{kannada}</p>
+          <p className="font-kannada text-[11px] font-semibold text-amber-700 mt-0.5">{kannada}</p>
           <p className="text-xs text-slate-600 mt-1 leading-snug">{desc}</p>
+          <span className="text-[10px] font-mono text-slate-400 mt-1.5 block">
+            Hover medal coin to view BBMP seal
+          </span>
         </div>
       </div>
     </div>
@@ -99,7 +116,7 @@ export default function Leaderboard({ issues }) {
           <div className="font-display text-3xl font-black text-slate-900 mt-1">
             <CountUp value={reportsSubmitted} />
           </div>
-          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Official Dockets Logged</span>
+          <span className="text-[11px] text-slate-600 font-medium mt-0.5 block">Official Dockets Logged</span>
         </div>
 
         <div className="p-5 rounded-xl border border-slate-300 bg-white shadow-sm">
@@ -107,7 +124,7 @@ export default function Leaderboard({ issues }) {
           <div className="font-display text-3xl font-black text-emerald-700 mt-1">
             <CountUp value={verificationsMade} />
           </div>
-          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Community Endorsements</span>
+          <span className="text-[11px] text-slate-600 font-medium mt-0.5 block">Community Endorsements</span>
         </div>
 
         <div className="p-5 rounded-xl border border-slate-300 bg-white shadow-sm">
@@ -115,7 +132,7 @@ export default function Leaderboard({ issues }) {
           <div className="font-display text-3xl font-black text-govblue mt-1">
             <CountUp value={points} />
           </div>
-          <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">Total Score Accumulated</span>
+          <span className="text-[11px] text-slate-600 font-medium mt-0.5 block">Total Score Accumulated</span>
         </div>
       </div>
 

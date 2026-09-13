@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Noto+Sans+Kannada:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,7 +14,7 @@
   --gov-emerald: #047857;
   --gov-crimson: #DC2626;
   --text-primary: #0F172A;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748B;
   --border-subtle: #CBD5E1;
   --border-strong: #94A3B8;
@@ -34,6 +34,7 @@ body {
   background: var(--bg-base);
   color: var(--text-primary);
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
 }
 
 button, input, textarea, select { font: inherit; }
@@ -44,21 +45,20 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 @layer components {
   .shell { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
 
-  /* Official Government Solid Card (Zero Blur) */
+  /* Official Government Solid Panel (Strictly Zero Blur, Zero Glowing Border) */
   .panel {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    @apply rounded-xl border border-slate-300 bg-white shadow-sm;
   }
 
   .panel-interactive {
-    @apply transition duration-200 hover:border-slate-300 hover:shadow-md;
+    @apply transition duration-150 hover:border-slate-400 hover:shadow-md;
   }
 
-  .heading { @apply font-display font-bold tracking-tight text-slate-900; }
+  .heading { @apply font-display font-extrabold tracking-tight text-slate-900; }
   .muted { @apply text-sm leading-relaxed text-slate-600; }
   .section-label { @apply mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-govblue; }
 
-  /* Official Buttons */
+  /* Official Government Buttons */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg bg-civic px-5 py-2.5 font-display text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 active:scale-[.99] focus:outline-none focus:ring-2 focus:ring-civic focus:ring-offset-2;
   }
@@ -68,7 +68,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 font-display text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 hover:border-slate-400 active:scale-[.99] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 font-display text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50 hover:border-slate-400 active:scale-[.99] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2;
   }
 
   .btn-outline-navy {
@@ -102,7 +102,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   }
 }
 
-/* ─── 3D Perspective & Physics Engine ─── */
+/* ─── 3D Perspective & Depth System ─── */
 .perspective-1000 {
   perspective: 1000px;
 }
@@ -117,44 +117,44 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 
 .card-3d-wrapper {
   transform-style: preserve-3d;
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease;
   will-change: transform;
 }
 
 .card-3d-wrapper:hover {
-  box-shadow: 0 20px 30px -8px rgba(10, 37, 64, 0.12), 0 8px 12px -4px rgba(10, 37, 64, 0.06);
+  box-shadow: 0 16px 28px -6px rgba(10, 37, 64, 0.10), 0 6px 10px -4px rgba(10, 37, 64, 0.05);
 }
 
-.layer-z-1 { transform: translateZ(8px); }
-.layer-z-2 { transform: translateZ(16px); }
-.layer-z-3 { transform: translateZ(26px); }
-.layer-z-4 { transform: translateZ(40px); }
+.layer-z-1 { transform: translateZ(10px); }
+.layer-z-2 { transform: translateZ(20px); }
+.layer-z-3 { transform: translateZ(32px); }
+.layer-z-4 { transform: translateZ(46px); }
+.layer-z-5 { transform: translateZ(60px); }
 
-/* 3D Medal Showcase */
-.coin-3d {
+/* 3D Rotatable Medal & Seal Component */
+.medal-3d-coin {
   transform-style: preserve-3d;
-  animation: coinSpin 8s linear infinite;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
-@keyframes coinSpin {
-  0% { transform: rotateY(0deg); }
-  50% { transform: rotateY(180deg); }
-  100% { transform: rotateY(360deg); }
+.medal-3d-coin:hover {
+  transform: rotateY(180deg) scale(1.08);
 }
 
-/* Official Government Utility Header Ribbon */
+/* Karnataka Flag Official Ribbon */
+.karnataka-ribbon {
+  height: 3.5px;
+  background: linear-gradient(90deg, #D97706 0%, #D97706 50%, #DC2626 50%, #DC2626 100%);
+}
+
+/* Official Government Utility Top Bar */
 .gov-top-bar {
   background: #0A2540;
   color: #F8FAFC;
   font-size: 11px;
   font-family: 'Noto Sans Kannada', 'Inter', sans-serif;
-  border-bottom: 2px solid #D97706; /* Karnataka Saffron accent */
-}
-
-/* Karnataka Flag subtle ribbon */
-.karnataka-ribbon {
-  height: 3px;
-  background: linear-gradient(90deg, #D97706 0%, #D97706 50%, #DC2626 50%, #DC2626 100%);
+  border-bottom: 2px solid #D97706;
 }
 
 /* Official Ticker */
@@ -165,15 +165,15 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 
 .page-enter {
-  animation: pageIn 220ms ease both;
+  animation: pageIn 180ms ease both;
 }
 
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Category Banners - Clean Solid Styling */
+/* Category Solid Banners */
 .category-road { background: #1E293B; color: #FFFFFF; }
 .category-drain { background: #0F766E; color: #FFFFFF; }
 .category-water { background: #0284C7; color: #FFFFFF; }
@@ -192,19 +192,29 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 .thin-scrollbar::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 999px; }
 .thin-scrollbar::-webkit-scrollbar-track { background: #F1F5F9; }
 
-/* Clean Loading Bar */
-.gov-loading-bar {
-  height: 3px;
-  background: linear-gradient(90deg, #0A2540, #D97706, #047857);
-  animation: govLoading 1.5s ease-in-out infinite;
-}
-
-@keyframes govLoading {
-  0% { transform: scaleX(0); transform-origin: left; }
-  50% { transform: scaleX(1); transform-origin: left; }
-  50.1% { transform: scaleX(1); transform-origin: right; }
-  100% { transform: scaleX(0); transform-origin: right; }
-}
-
 /* Typography & Accessibility */
 .font-kannada { font-family: 'Noto Sans Kannada', sans-serif; }
+
+/* 3D Computer Vision Reticle Scan Lines for Photo Upload */
+.scanner-grid-overlay {
+  background-image:
+    linear-gradient(rgba(29, 78, 216, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 78, 216, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.scan-beam-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1D4ED8;
+  box-shadow: 0 0 0 1px #3B82F6;
+  animation: scanBeam 2.2s ease-in-out infinite;
+}
+
+@keyframes scanBeam {
+  0% { top: 0%; opacity: 0.2; }
+  50% { top: 98%; opacity: 1; }
+  100% { top: 0%; opacity: 0.2; }
+}
