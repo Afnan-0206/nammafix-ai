@@ -132,213 +132,511 @@ export default function ThreeMachineryViewer() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     container.appendChild(renderer.domElement)
 
-    // Lighting (Crisp Studio Daylight Lighting)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.9)
+    // Enhanced Studio 3-Point Lighting
+    const ambient = new THREE.AmbientLight(0xffffff, 0.85)
     scene.add(ambient)
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.4)
-    keyLight.position.set(10, 16, 10)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.5)
+    keyLight.position.set(12, 18, 12)
     keyLight.castShadow = true
-    keyLight.shadow.mapSize.width = 1024
-    keyLight.shadow.mapSize.height = 1024
+    keyLight.shadow.mapSize.width = 2048
+    keyLight.shadow.mapSize.height = 2048
+    keyLight.shadow.camera.near = 0.5
+    keyLight.shadow.camera.far = 35
+    keyLight.shadow.camera.left = -6
+    keyLight.shadow.camera.right = 6
+    keyLight.shadow.camera.top = 6
+    keyLight.shadow.camera.bottom = -6
+    keyLight.shadow.bias = -0.0005
     scene.add(keyLight)
 
-    const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.6)
-    fillLight.position.set(-10, 8, -8)
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.65)
+    fillLight.position.set(-12, 10, -10)
     scene.add(fillLight)
 
+    const rimLight = new THREE.DirectionalLight(0xfef08a, 0.45)
+    rimLight.position.set(0, 8, -14)
+    scene.add(rimLight)
+
     // Platform Base with Asphalt Road Surface
-    const baseGeo = new THREE.CylinderGeometry(4.8, 5.0, 0.4, 32)
-    const baseMat = new THREE.MeshLambertMaterial({ color: 0x334155 }) // Dark Asphalt
+    const baseGeo = new THREE.CylinderGeometry(5.2, 5.4, 0.35, 48)
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.1 })
     const baseMesh = new THREE.Mesh(baseGeo, baseMat)
-    baseMesh.position.y = -0.2
+    baseMesh.position.y = -0.18
     baseMesh.receiveShadow = true
     scene.add(baseMesh)
 
-    // Road White Line Striping on Base
-    const stripeGeo = new THREE.BoxGeometry(0.2, 0.02, 3.2)
-    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
-    const stripe = new THREE.Mesh(stripeGeo, stripeMat)
-    stripe.position.set(0, 0.01, 0)
-    baseMesh.add(stripe)
+    // Road Markings (Circular curb ring + double yellow lines)
+    const curbGeo = new THREE.TorusGeometry(4.9, 0.08, 12, 48)
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 })
+    const curbMesh = new THREE.Mesh(curbGeo, curbMat)
+    curbMesh.rotation.x = Math.PI / 2
+    curbMesh.position.y = 0.01
+    baseMesh.add(curbMesh)
+
+    const stripeGeo = new THREE.BoxGeometry(0.14, 0.01, 3.6)
+    const stripeMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 })
+    const stripe1 = new THREE.Mesh(stripeGeo, stripeMat)
+    stripe1.position.set(0.12, 0.01, 0)
+    baseMesh.add(stripe1)
+    const stripe2 = new THREE.Mesh(stripeGeo, stripeMat)
+    stripe2.position.set(-0.12, 0.01, 0)
+    baseMesh.add(stripe2)
 
     // Machinery Root Group
     const modelGroup = new THREE.Group()
     scene.add(modelGroup)
     modelGroupRef.current = modelGroup
 
-    // Materials
-    const chassisMat = new THREE.MeshLambertMaterial({ color: 0x005a36 }) // Official BBMP Forest Green
-    const cabMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-    const metalMat = new THREE.MeshLambertMaterial({ color: 0x475569 })
-    const chromeMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 })
-    const yellowArmMat = new THREE.MeshLambertMaterial({ color: 0xd97706 })
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0x0a2540 })
-    const tireMat = new THREE.MeshLambertMaterial({ color: 0x0f172a })
-    const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a })
+    // Photorealistic PBR Materials
+    const chassisPaintMat = new THREE.MeshStandardMaterial({ color: 0x054d2a, roughness: 0.35, metalness: 0.35 }) // Official BBMP Green
+    const cabPaintMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.25, metalness: 0.15 }) // Commercial White
+    const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.6 }) // Structural Steel
+    const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.12, metalness: 0.95 }) // Chrome Rams & Mirrors
+    const yellowArmMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.35, metalness: 0.25 }) // Industrial Yellow
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f2537, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.85 })
+    const rubberTireMat = new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.9, metalness: 0.05 })
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.25, metalness: 0.85 })
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.8 })
+    const amberBeaconMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.2, emissive: 0xf59e0b, emissiveIntensity: 0.9 })
+    const headlightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, emissive: 0xfef08a, emissiveIntensity: 0.8 })
+    const taillightMat = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.2, emissive: 0xe11d48, emissiveIntensity: 0.7 })
+    const tankBoilerMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.65 })
+    const hazardMat = new THREE.MeshStandardMaterial({ color: 0xca8a04, roughness: 0.4, metalness: 0.1 })
 
-    // 1. Chassis
-    const chassisGeo = new THREE.BoxGeometry(4.4, 0.9, 2.1)
-    const chassis = new THREE.Mesh(chassisGeo, chassisMat)
-    chassis.position.set(0, 0.9, 0)
-    chassis.castShadow = true
-    chassis.receiveShadow = true
-    modelGroup.add(chassis)
+    // ─── 1. Heavy-Duty Chassis Frame Rails & Front Bumper ───
+    const railGeo = new THREE.BoxGeometry(4.8, 0.25, 0.2)
+    const leftRail = new THREE.Mesh(railGeo, darkSteelMat)
+    leftRail.position.set(0, 0.7, 0.55)
+    leftRail.castShadow = true
+    modelGroup.add(leftRail)
 
-    // 2. Cab
-    const cabGeo = new THREE.BoxGeometry(1.5, 1.3, 2.0)
-    const cab = new THREE.Mesh(cabGeo, cabMat)
-    cab.position.set(1.3, 1.85, 0)
-    cab.castShadow = true
-    modelGroup.add(cab)
+    const rightRail = new THREE.Mesh(railGeo, darkSteelMat)
+    rightRail.position.set(0, 0.7, -0.55)
+    rightRail.castShadow = true
+    modelGroup.add(rightRail)
 
-    // Windshield
-    const windowGeo = new THREE.BoxGeometry(0.05, 0.75, 1.8)
-    const windshield = new THREE.Mesh(windowGeo, glassMat)
-    windshield.position.set(2.06, 1.95, 0)
-    modelGroup.add(windshield)
+    // Cross members
+    ;[-1.8, -0.8, 0.2, 1.2, 2.1].forEach((cx) => {
+      const cross = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 1.2), darkSteelMat)
+      cross.position.set(cx, 0.7, 0)
+      modelGroup.add(cross)
+    })
 
-    // Headlights
-    const lightGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 16)
-    const leftLight = new THREE.Mesh(lightGeo, headlightMat)
-    leftLight.rotation.z = Math.PI / 2
-    leftLight.position.set(2.21, 0.9, 0.75)
-    modelGroup.add(leftLight)
+    // Heavy Front Bumper with Tow Hooks
+    const bumperGeo = new THREE.BoxGeometry(0.35, 0.38, 2.3)
+    const bumper = new THREE.Mesh(bumperGeo, darkSteelMat)
+    bumper.position.set(2.15, 0.75, 0)
+    bumper.castShadow = true
+    modelGroup.add(bumper)
 
-    const rightLight = new THREE.Mesh(lightGeo, headlightMat)
-    rightLight.rotation.z = Math.PI / 2
-    rightLight.position.set(2.21, 0.9, -0.75)
-    modelGroup.add(rightLight)
+    // Bumper Hazard Caution Plate
+    const hazardPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.15, 1.6), hazardMat)
+    hazardPlate.position.set(2.33, 0.75, 0)
+    modelGroup.add(hazardPlate)
 
-    // 3. Bitumen Emulsion Tank Unit
+    // Headlight Assemblies
+    ;[0.85, -0.85].forEach((hz) => {
+      const hlHousing = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.32), darkSteelMat)
+      hlHousing.position.set(2.28, 0.82, hz)
+      modelGroup.add(hlHousing)
+
+      const hlLens = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.05, 16), headlightMat)
+      hlLens.rotation.z = Math.PI / 2
+      hlLens.position.set(2.33, 0.82, hz)
+      modelGroup.add(hlLens)
+    })
+
+    // Rear Bumper & Taillights
+    const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.3, 2.2), darkSteelMat)
+    rearBumper.position.set(-2.3, 0.7, 0)
+    rearBumper.castShadow = true
+    modelGroup.add(rearBumper)
+
+    ;[0.8, -0.8].forEach((tz) => {
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.15, 0.3), taillightMat)
+      tl.position.set(-2.43, 0.75, tz)
+      modelGroup.add(tl)
+    })
+
+    // ─── 2. Commercial Truck Cab (White & BBMP Green) ───
+    const cabGroup = new THREE.Group()
+
+    // Main Cab Body
+    const cabBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.45, 2.1), cabPaintMat)
+    cabBody.position.set(1.2, 1.75, 0)
+    cabBody.castShadow = true
+    cabGroup.add(cabBody)
+
+    // Cab Lower Skirt in Official BBMP Green
+    const cabSkirt = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.45, 2.12), chassisPaintMat)
+    cabSkirt.position.set(1.2, 1.15, 0)
+    cabSkirt.castShadow = true
+    cabGroup.add(cabSkirt)
+
+    // Aerodynamic Slanted Windshield
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.82, 1.9), glassMat)
+    windshield.position.set(2.01, 1.95, 0)
+    windshield.rotation.z = -0.15
+    cabGroup.add(windshield)
+
+    // Twin Windshield Wipers
+    ;[0.4, -0.4].forEach((wz) => {
+      const wiper = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.45, 0.03), darkSteelMat)
+      wiper.position.set(2.04, 1.85, wz)
+      wiper.rotation.z = 0.4
+      cabGroup.add(wiper)
+    })
+
+    // Side Door Windows
+    ;[1.06, -1.06].forEach((wz) => {
+      const sideWin = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.55, 0.05), glassMat)
+      sideWin.position.set(1.25, 2.0, wz)
+      cabGroup.add(sideWin)
+
+      // Door Handles
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.06), chromeMat)
+      handle.position.set(0.9, 1.65, wz * 1.02)
+      cabGroup.add(handle)
+
+      // Side Entry Grab Steps
+      const step = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 0.2), darkSteelMat)
+      step.position.set(1.2, 0.75, wz * 1.05)
+      cabGroup.add(step)
+
+      // Heavy Side Mirrors on Chrome Tubular Brackets
+      const bracket = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 8), chromeMat)
+      bracket.position.set(1.9, 1.95, wz * 1.15)
+      bracket.rotation.x = Math.PI / 2
+      cabGroup.add(bracket)
+
+      const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.18), darkSteelMat)
+      mirror.position.set(1.9, 1.95, wz * 1.3)
+      cabGroup.add(mirror)
+    })
+
+    // Front Grille & Radiator
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 1.7), darkSteelMat)
+    grille.position.set(2.02, 1.25, 0)
+    cabGroup.add(grille)
+
+    // Chrome Grille Louvers
+    ;[1.4, 1.25, 1.1].forEach((ly) => {
+      const louver = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 1.55), chromeMat)
+      louver.position.set(2.07, ly, 0)
+      cabGroup.add(louver)
+    })
+
+    // BBMP Crest Medallion on Grille
+    const crest = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.04, 20), brassMat)
+    crest.rotation.z = Math.PI / 2
+    crest.position.set(2.08, 1.35, 0)
+    cabGroup.add(crest)
+
+    // Cab Roof Warning Lightbar & Beacons
+    const lightbarBase = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 1.5), darkSteelMat)
+    lightbarBase.position.set(1.15, 2.52, 0)
+    cabGroup.add(lightbarBase)
+
+    ;[0.55, -0.55].forEach((bz) => {
+      const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.18, 16), amberBeaconMat)
+      beacon.position.set(1.15, 2.65, bz)
+      cabGroup.add(beacon)
+    })
+
+    // Chrome Dual Air Horns
+    const horn = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.03, 0.6, 12), chromeMat)
+    horn.rotation.z = Math.PI / 2
+    horn.position.set(1.25, 2.58, 0.18)
+    cabGroup.add(horn)
+
+    // Vertical Diesel Exhaust Chimney Stack
+    const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 16), chromeMat)
+    exhaust.position.set(0.35, 2.3, -0.9)
+    exhaust.castShadow = true
+    cabGroup.add(exhaust)
+
+    const exhaustCap = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.05, 0.15, 12), darkSteelMat)
+    exhaustCap.position.set(0.35, 3.25, -0.9)
+    exhaustCap.rotation.z = 0.3
+    cabGroup.add(exhaustCap)
+
+    modelGroup.add(cabGroup)
+
+    // ─── 3. 6-Wheel Tandem Axle Suspension (2 Front, 4 Rear Duals) ───
+    const createWheel = (wx, wy, wz, isDual = false) => {
+      const wheelGroup = new THREE.Group()
+      wheelGroup.position.set(wx, wy, wz)
+
+      // Outer Rubber Tire with Tread Chamfer
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, isDual ? 0.42 : 0.32, 28), rubberTireMat)
+      tire.rotation.x = Math.PI / 2
+      tire.castShadow = true
+      wheelGroup.add(tire)
+
+      // Alloy Wheel Rim
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, isDual ? 0.44 : 0.34, 20), rimMat)
+      rim.rotation.x = Math.PI / 2
+      wheelGroup.add(rim)
+
+      // Central Hubcap & Lug Nuts
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, isDual ? 0.46 : 0.36, 16), darkSteelMat)
+      hub.rotation.x = Math.PI / 2
+      wheelGroup.add(hub)
+
+      modelGroup.add(wheelGroup)
+    }
+
+    // Front Steer Axle (x = 1.2)
+    createWheel(1.2, 0.5, 1.1)
+    createWheel(1.2, 0.5, -1.1)
+
+    // Rear Tandem Axle 1 (x = -0.6) Dual Wheels
+    createWheel(-0.6, 0.5, 1.15, true)
+    createWheel(-0.6, 0.5, -1.15, true)
+
+    // Rear Tandem Axle 2 (x = -1.5) Dual Wheels
+    createWheel(-1.5, 0.5, 1.15, true)
+    createWheel(-1.5, 0.5, -1.15, true)
+
+    // Mudguards / Fenders over wheels in BBMP Green
+    ;[1.15, -1.15].forEach((fz) => {
+      // Rear Tandem Fender
+      const rearFender = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 0.5), chassisPaintMat)
+      rearFender.position.set(-1.05, 1.1, fz)
+      rearFender.castShadow = true
+      modelGroup.add(rearFender)
+    })
+
+    // ─── 4. Subsystem 1: Insulated Bituminous Emulsion Boiler Tank ───
     const tankGroup = new THREE.Group()
-    const tankGeo = new THREE.CylinderGeometry(0.75, 0.75, 1.9, 24)
-    const tank = new THREE.Mesh(tankGeo, metalMat)
-    tank.rotation.z = Math.PI / 2
-    tank.position.set(-0.7, 1.65, 0)
-    tank.castShadow = true
-    tankGroup.add(tank)
 
-    // Tank Warning Bands
-    const bandGeo = new THREE.TorusGeometry(0.77, 0.04, 8, 24)
-    const bandMat = new THREE.MeshBasicMaterial({ color: 0xd97706 })
-    const band1 = new THREE.Mesh(bandGeo, bandMat)
-    band1.rotation.y = Math.PI / 2
-    band1.position.set(-0.3, 1.65, 0)
-    tankGroup.add(band1)
+    // Main Cylindrical Boiler Tank (Horizontal)
+    const tankBody = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 2.2, 32), tankBoilerMat)
+    tankBody.rotation.z = Math.PI / 2
+    tankBody.position.set(-0.5, 1.72, 0)
+    tankBody.castShadow = true
+    tankGroup.add(tankBody)
 
-    const band2 = new THREE.Mesh(bandGeo, bandMat)
-    band2.rotation.y = Math.PI / 2
-    band2.position.set(-1.1, 1.65, 0)
-    tankGroup.add(band2)
+    // Rounded Domed End Caps
+    const domeGeo = new THREE.SphereGeometry(0.82, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2)
+    const frontDome = new THREE.Mesh(domeGeo, tankBoilerMat)
+    frontDome.position.set(0.6, 1.72, 0)
+    frontDome.rotation.z = -Math.PI / 2
+    frontDome.castShadow = true
+    tankGroup.add(frontDome)
+
+    const rearDome = new THREE.Mesh(domeGeo, tankBoilerMat)
+    rearDome.position.set(-1.6, 1.72, 0)
+    rearDome.rotation.z = Math.PI / 2
+    rearDome.castShadow = true
+    tankGroup.add(rearDome)
+
+    // Structural Saddle Cradles
+    ;[-1.2, -0.5, 0.2].forEach((sx) => {
+      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.35, 1.8), darkSteelMat)
+      saddle.position.set(sx, 0.95, 0)
+      saddle.castShadow = true
+      tankGroup.add(saddle)
+    })
+
+    // Safety Caution Circumferential Bands
+    ;[-1.0, 0.0].forEach((bx) => {
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.84, 0.035, 12, 32), yellowArmMat)
+      band.rotation.y = Math.PI / 2
+      band.position.set(bx, 1.72, 0)
+      tankGroup.add(band)
+    })
+
+    // Top Service Inspection Hatch & Handwheel
+    const hatch = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.12, 20), darkSteelMat)
+    hatch.position.set(-0.5, 2.58, 0)
+    tankGroup.add(hatch)
+
+    const handwheel = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 8, 16), chromeMat)
+    handwheel.rotation.x = Math.PI / 2
+    handwheel.position.set(-0.5, 2.68, 0)
+    tankGroup.add(handwheel)
+
+    // Lateral Thermal Instrumentation Cluster (Pressure Gauge & 75°C Digital Module)
+    const gaugeBox = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.45, 0.15), darkSteelMat)
+    gaugeBox.position.set(-0.3, 1.7, 0.88)
+    tankGroup.add(gaugeBox)
+
+    const analogGauge = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 16), chromeMat)
+    analogGauge.rotation.x = Math.PI / 2
+    analogGauge.position.set(-0.3, 1.82, 0.96)
+    tankGroup.add(analogGauge)
+
+    const digitalReadout = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.02), headlightMat)
+    digitalReadout.position.set(-0.3, 1.62, 0.96)
+    tankGroup.add(digitalReadout)
+
+    // Brass Circulation Pipes & Valves
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 12), brassMat)
+    pipe.position.set(-0.3, 1.15, 0.85)
+    tankGroup.add(pipe)
+
+    // Rear High-Pressure Hose Storage Reel
+    const reelGroup = new THREE.Group()
+    reelGroup.position.set(-1.8, 1.4, 0.65)
+
+    const reelDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.32, 20), darkSteelMat)
+    reelDrum.rotation.z = Math.PI / 2
+    reelGroup.add(reelDrum)
+
+    const reelHose = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 8, 20), rubberTireMat)
+    reelHose.rotation.y = Math.PI / 2
+    reelGroup.add(reelHose)
+    tankGroup.add(reelGroup)
 
     modelGroup.add(tankGroup)
     meshRefs.current.tank = tankGroup
 
-    // 4. Wheels & Compaction Roller Unit
-    const wheelGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.45, 20)
-    const wheelPositions = [
-      [1.1, 0.48, 1.1], [1.1, 0.48, -1.1],
-      [-0.8, 0.48, 1.1], [-0.8, 0.48, -1.1]
-    ]
-    wheelPositions.forEach(([wx, wy, wz]) => {
-      const wheel = new THREE.Mesh(wheelGeo, tireMat)
-      wheel.rotation.x = Math.PI / 2
-      wheel.position.set(wx, wy, wz)
-      wheel.castShadow = true
-      modelGroup.add(wheel)
+    // ─── 5. Subsystem 2: Articulated Hydraulic Jet-Patch Arm ───
+    const armGroup = new THREE.Group()
+    armGroup.position.set(-1.8, 1.35, 0)
+
+    // Slewing Turret Base & Hydraulic Motor
+    const turretBase = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.35, 24), darkSteelMat)
+    turretBase.castShadow = true
+    armGroup.add(turretBase)
+
+    const turretGear = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.08, 24), chromeMat)
+    turretGear.position.y = 0.12
+    armGroup.add(turretGear)
+
+    // Primary Boom (Segment 1) in Heavy Industrial Yellow
+    const boom1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.28, 0.28), yellowArmMat)
+    boom1.position.set(-0.75, 0.65, 0)
+    boom1.rotation.z = -0.55
+    boom1.castShadow = true
+    armGroup.add(boom1)
+
+    // Dual Chrome Hydraulic Lift Rams
+    ;[0.18, -0.18].forEach((rz) => {
+      const cylBody = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 12), darkSteelMat)
+      cylBody.position.set(-0.45, 0.35, rz)
+      cylBody.rotation.z = -0.6
+      armGroup.add(cylBody)
+
+      const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.7, 12), chromeMat)
+      piston.position.set(-0.75, 0.65, rz)
+      piston.rotation.z = -0.6
+      armGroup.add(piston)
     })
 
-    // Heavy Roller Drum Unit
-    const rollerGroup = new THREE.Group()
-    const rollerGeo = new THREE.CylinderGeometry(0.55, 0.55, 2.0, 28)
-    const roller = new THREE.Mesh(rollerGeo, metalMat)
-    roller.rotation.x = Math.PI / 2
-    roller.position.set(-2.1, 0.55, 0)
-    roller.castShadow = true
-    rollerGroup.add(roller)
+    // Articulation Knuckle Joint
+    const knuckle = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.38, 20), darkSteelMat)
+    knuckle.position.set(-1.5, 1.05, 0)
+    armGroup.add(knuckle)
 
-    // Hydraulic roller bracket
-    const bracketGeo = new THREE.BoxGeometry(0.6, 0.2, 2.1)
-    const bracket = new THREE.Mesh(bracketGeo, chromeMat)
-    bracket.position.set(-1.9, 0.9, 0)
-    rollerGroup.add(bracket)
+    // Secondary Boom (Segment 2) angled down toward road
+    const boom2 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.22, 0.22), yellowArmMat)
+    boom2.position.set(-1.95, 0.45, 0)
+    boom2.rotation.z = 0.75
+    boom2.castShadow = true
+    armGroup.add(boom2)
 
-    modelGroup.add(rollerGroup)
-    meshRefs.current.roller = rollerGroup
+    // Flexible Spiral-Wound Delivery Hose
+    const armHose = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.06, 12, 24, Math.PI * 0.9), rubberTireMat)
+    armHose.position.set(-1.4, 0.75, -0.18)
+    armGroup.add(armHose)
 
-    // 5. Articulated Hydraulic Jet-Patch Arm Unit
-    const armGroup = new THREE.Group()
-    armGroup.position.set(-1.6, 1.6, 0)
+    // Aggregate Jet Injection Spray Head & Diffuser
+    const nozzleHead = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.65, 20), darkSteelMat)
+    nozzleHead.rotation.x = Math.PI
+    nozzleHead.position.set(-2.55, -0.15, 0)
+    nozzleHead.castShadow = true
+    armGroup.add(nozzleHead)
 
-    // Arm Segment 1
-    const seg1Geo = new THREE.BoxGeometry(1.6, 0.24, 0.24)
-    const seg1 = new THREE.Mesh(seg1Geo, yellowArmMat)
-    seg1.position.set(-0.7, 0.5, 0)
-    seg1.rotation.z = -0.6
-    seg1.castShadow = true
-    armGroup.add(seg1)
-
-    // Hydraulic Cylinder Piston
-    const pistonGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.1, 12)
-    const piston = new THREE.Mesh(pistonGeo, chromeMat)
-    piston.position.set(-0.6, 0.2, 0.16)
-    piston.rotation.z = -0.5
-    armGroup.add(piston)
-
-    // Articulation Swivel Joint
-    const jointGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.35, 16)
-    const joint = new THREE.Mesh(jointGeo, metalMat)
-    joint.position.set(-1.4, 0.9, 0)
-    armGroup.add(joint)
-
-    // Arm Segment 2 (Pointing down to road)
-    const seg2Geo = new THREE.BoxGeometry(1.5, 0.2, 0.2)
-    const seg2 = new THREE.Mesh(seg2Geo, yellowArmMat)
-    seg2.position.set(-1.8, 0.3, 0)
-    seg2.rotation.z = 0.8
-    seg2.castShadow = true
-    armGroup.add(seg2)
-
-    // High-Pressure Rubber Delivery Hose
-    const hoseGeo = new THREE.TorusGeometry(0.5, 0.05, 8, 16, Math.PI)
-    const hoseMat = new THREE.MeshLambertMaterial({ color: 0x0f172a })
-    const hose = new THREE.Mesh(hoseGeo, hoseMat)
-    hose.position.set(-1.4, 0.6, -0.15)
-    armGroup.add(hose)
-
-    // Venturi Aggregate Jet Nozzle
-    const nozzleGeo = new THREE.ConeGeometry(0.28, 0.55, 16)
-    const nozzleMat = new THREE.MeshLambertMaterial({ color: 0x0f172a })
-    const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat)
-    nozzle.rotation.x = Math.PI
-    nozzle.position.set(-2.3, -0.3, 0)
-    nozzle.castShadow = true
-    armGroup.add(nozzle)
+    const nozzleDiffuser = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 8, 16), brassMat)
+    nozzleDiffuser.rotation.x = Math.PI / 2
+    nozzleDiffuser.position.set(-2.55, -0.45, 0)
+    armGroup.add(nozzleDiffuser)
 
     modelGroup.add(armGroup)
     meshRefs.current.arm = armGroup
 
-    // 6. GIS Telemetry Mast & Sensor Beacon Unit
+    // ─── 6. Subsystem 3: Heavy Front Compaction Roller ───
+    const rollerGroup = new THREE.Group()
+
+    // Articulated Hydraulic Mounting Linkage
+    ;[0.9, -0.9].forEach((az) => {
+      const armLink = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.14), darkSteelMat)
+      armLink.position.set(2.4, 0.55, az)
+      armLink.castShadow = true
+      rollerGroup.add(armLink)
+
+      // Hydraulic Lift Actuator
+      const liftCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.55, 12), chromeMat)
+      liftCyl.position.set(2.25, 0.85, az)
+      liftCyl.rotation.z = 0.45
+      rollerGroup.add(liftCyl)
+    })
+
+    // Heavy Steel Compaction Drum
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 2.15, 36), darkSteelMat)
+    drum.rotation.x = Math.PI / 2
+    drum.position.set(2.65, 0.52, 0)
+    drum.castShadow = true
+    rollerGroup.add(drum)
+
+    // Full-Width Drum Scraper Bar
+    const scraper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 2.2), yellowArmMat)
+    scraper.position.set(2.65, 0.95, 0)
+    rollerGroup.add(scraper)
+
+    // Hydraulic Vibratory Motor Pod
+    const motorPod = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.25, 16), darkSteelMat)
+    motorPod.rotation.x = Math.PI / 2
+    motorPod.position.set(2.65, 0.52, 1.18)
+    rollerGroup.add(motorPod)
+
+    modelGroup.add(rollerGroup)
+    meshRefs.current.roller = rollerGroup
+
+    // ─── 7. Subsystem 4: GIS Telemetry & Telematics Command Station ───
     const telemetryGroup = new THREE.Group()
-    const mastGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.9, 8)
-    const mast = new THREE.Mesh(mastGeo, metalMat)
-    mast.position.set(0.7, 2.7, 0.5)
-    telemetryGroup.add(mast)
 
-    // Flashing Strobe Beacon
-    const beaconGeo = new THREE.SphereGeometry(0.18, 16, 16)
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xd97706 })
-    const beacon = new THREE.Mesh(beaconGeo, beaconMat)
-    beacon.position.set(0.7, 3.25, 0.5)
-    telemetryGroup.add(beacon)
+    // High-Precision RTK GPS Dome Antenna on Cab Roof
+    const rtkMast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 12), chromeMat)
+    rtkMast.position.set(1.25, 2.65, 0.25)
+    telemetryGroup.add(rtkMast)
 
-    // In-Cab GPS Antenna Disc
-    const discGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.06, 16)
-    const discMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-    const disc = new THREE.Mesh(discGeo, discMat)
-    disc.position.set(1.3, 2.55, 0)
-    telemetryGroup.add(disc)
+    const rtkDome = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 20), cabPaintMat)
+    rtkDome.position.set(1.25, 2.9, 0.25)
+    telemetryGroup.add(rtkDome)
+
+    // 5G Encrypted Command Whip Antenna
+    const whipAntenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 8), darkSteelMat)
+    whipAntenna.position.set(0.9, 3.0, -0.35)
+    whipAntenna.rotation.z = -0.1
+    telemetryGroup.add(whipAntenna)
+
+    // Lateral Auxiliary Diesel Generator & Hydraulic Power Unit
+    const generatorBox = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.72, 0.55), chassisPaintMat)
+    generatorBox.position.set(0.2, 0.82, -1.05)
+    generatorBox.castShadow = true
+    telemetryGroup.add(generatorBox)
+
+    // Generator Louvered Vents
+    ;[-0.1, 0.1, 0.3].forEach((vx) => {
+      const vent = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.02), darkSteelMat)
+      vent.position.set(vx, 0.85, -1.33)
+      telemetryGroup.add(vent)
+    })
+
+    // In-Cab Diagnostic Telemetry Display Console (Glowing Screen)
+    const screenConsole = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.04), darkSteelMat)
+    screenConsole.position.set(1.65, 1.75, 0.35)
+    screenConsole.rotation.y = -0.3
+    telemetryGroup.add(screenConsole)
+
+    const screenGlow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.02), new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.9 }))
+    screenGlow.position.set(1.65, 1.75, 0.37)
+    screenGlow.rotation.y = -0.3
+    telemetryGroup.add(screenGlow)
 
     modelGroup.add(telemetryGroup)
     meshRefs.current.telemetry = telemetryGroup
