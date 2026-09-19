@@ -42,7 +42,22 @@ export function persistIssues(issues) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(issues))
 }
 
-export const formatDate = (date) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(date))
+export const formatDate = (date) => {
+  if (!date) return 'Recently'
+
+  const parsed = new Date(date)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Recently'
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed)
+}
 export const urgencyTone = (score) => score >= 85 ? 'bg-rose-400' : score >= 70 ? 'bg-orange-400' : score >= 50 ? 'bg-yellow-300' : 'bg-emerald-400'
 
 const stopWords = new Set(['the', 'and', 'near', 'road', 'main', 'with', 'from', 'this', 'that', 'issue', 'report', 'area', 'lane', 'stop', 'for', 'has', 'been'])

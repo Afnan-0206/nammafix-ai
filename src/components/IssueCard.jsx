@@ -27,7 +27,8 @@ function priorityBadgeClass(severity) {
 }
 
 export default function IssueCard({ issue, onVerify, onView, onShare, compact = false, animationIndex = 0 }) {
-  const area = issue.area || issue.location.split(',').at(-1)?.trim() || issue.location
+  const location = issue.location || ''
+  const area = issue.area || location.split(',').at(-1)?.trim() || 'Bengaluru'
   const tilt = use3DTilt(8, 1000)
 
   const verify = (event) => {
